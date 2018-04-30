@@ -1,5 +1,24 @@
 import sqlite3
+import mysql.connector as mariadb
+import pymysql.cursors
+import configparser
 
+config = configparser.ConfigParser()
+config.sections()
+config.read('config.ini')
+db_host = config['DEFAULT']['server']
+db_user = config['DEFAULT']['user']
+db_pass = config['DEFAULT']['pass']
+db_database = config['DEFAULT']['db_database']
+
+def pymsql_connect():
+    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
+    cursor = conn.cursor()
+    return conn
+def mariadb_connect():
+    mariadb_connection = mariadb.connect(host='192.168.0.20', user='root', password='newpwd', database='mp3db')
+    cursor = mariadb_connection.cursor()
+    return cursor
 
 def delete_filelist(conn):
     """ delete everythin in filelist """
@@ -12,7 +31,7 @@ def delete_filelist(conn):
     return cursor.lastrowid
 
 def reset_database(conn):
-    """ delete everythin in filelist """
+    """ delete """
     # clear file list for debugging
     cursor = conn.cursor()
     try:
@@ -24,13 +43,6 @@ def reset_database(conn):
     return cursor.lastrowid
 
 
-def unlock_db(db_filename):
-    """ unlock database """
-    """Replace db_filename with the name of the SQLite database."""
-    connection = sqlite.connect(db_filename)
-    connection.commit()
-    connection.close()
-
 
 def create_connection(db_file):
     """ create a database connection to the SQLite database
@@ -41,7 +53,7 @@ def create_connection(db_file):
     try:
         conn = sqlite3.connect(db_file)
         return conn
-    except Error as e:
+    except:
         print('Connection status {}'.format(e))
 
     return None
@@ -52,6 +64,7 @@ def db_insert_filename(conn, filename, hash, metadata):
     :param conn: connection
     :param filename: filename to insert
     :param hash md5 hash of file
+    :param metadata object
     """
     # insert data into database
     # sql = 'INSERT OR REPLACE INTO Files(filename) VALUES(?) '
@@ -62,18 +75,24 @@ def db_insert_filename(conn, filename, hash, metadata):
     album = metadata.album
     artist = metadata.artist
     title = metadata.title
-    print ('Update database: {} {} {}'.format(album, artist,title))
-    cursor.execute('INSERT OR REPLACE INTO Files (hash,filename, album, artist, title) VALUES (?,?,?,?,?)', (hash, filename, album, artist, title))
-    cursor.execute('INSERT OR REPLACE INTO Album (title,albumartist) VALUES (?,?)', (title, artist))
-    cursor.execute('INSERT OR REPLACE INTO Albumartist (name) VALUES (?)', (artist,))
+    print ('Update database: {} | {} | {} | {} | {}'.format(filename, hash, album, artist,title))
+    cursor.execute('INSERT IGNORE INTO Files (hash,filename, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (hash, filename, album, artist, title))
+    file_idx = cursor.lastrowid
+    cursor.execute('INSERT IGNORE INTO Album (title,albumartist) VALUES (%s,%s)', (album, artist))
+    album_idx = cursor.lastrowid
+    cursor.execute('INSERT  IGNORE INTO Albumartist (name) VALUES (%s)', (artist,))
+    artist_idx = cursor.lastrowid
+    cursor.execute('INSERT  IGNORE INTO Song (title,artist,album,filename) VALUES (%s,%s,%s,%s)', (title,artist_idx,album_idx,filename))
+    song_idx = cursor.lastrowid
+    print ("results: {} {} {} {} ".format(file_idx, album_idx, artist_idx,song_idx))
     # print ("DB insert result {}".format(result))
     conn.commit()
-    return cursor.lastrowid
+    return
 
 
 def db_insert_album(conn, title, albumartist):
     cursor = conn.cursor()
-    cursor.execute('INSERT OR REPLACE INTO Album (title,albumartist) VALUES (?,?)', (title, albumartist))
+    cursor.execute('INSERT  IGNORE INTO Album (title,albumartist) VALUES (%s,%s)', (title, albumartist))
     conn.commit()
 
     return cursor.lastrowid
@@ -85,36 +104,32 @@ def db_getfilelist(conn):
     cursor.execute('SELECT * FROM Files')
     return cursor
 
-def create_new_db(conn):
+def create_new_db():
+    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
 
-    sql_create_album_table = "CREATE TABLE Album ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Title` TEXT NOT NULL, `Albumartist` TEXT NOT NULL );"
+    PATH_TO_FILE = "mp3db.sql"
+    fullLine = ''
+    for line in open(PATH_TO_FILE):
+      tempLine = line.strip()
+      # Skip empty lines.
+      # However, it seems "strip" doesn't remove every sort of whitespace.
+      # So, we also catch the "Query was empty" error below.
+      if len(tempLine) == 0:
+        continue
+      # Skip comments
+      if tempLine[0] == '#':
+        continue
+      fullLine += line
+      if not ';' in line:
+        continue
+      # You can remove this. It's for debugging purposes.
+      # print "[line] ", fullLine, "[/line]"
+      with conn.cursor() as cur:
+          try:
+            cur.execute(fullLine)
+          except MySQLdb.OperationalError as e:
+            if e[1] == 'Query was empty':
+              continue
+      fullLine = ''
 
-    sql_create_artist_table = "CREATE TABLE Albumartist ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Name` TEXT NOT NULL );"
-    
-    sql_create_files_table = """
-    CREATE TABLE Files ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Hash` TEXT, `Filename` TEXT, `Album` TEXT, `Artist` TEXT, `Title` TEXT );
-    """
-
-    sql_create_songs_table = """
-    CREATE TABLE Song ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Title` TEXT NOT NULL, `Artist` INTEGER NOT NULL, `Album` INTEGER NOT NULL, `Filename` TEXT );
-    """
-
-    cursor = conn.cursor()
-
-    # Enable Foreign key constraints
-
-    cursor.execute("PRAGMA foreign_keys = ON;")
-
-    # Execute the DROP Table SQL statement
-
-    cursor.executescript("DROP TABLE if exists Album")
-    cursor.executescript("DROP TABLE if exists Albumartist")
-    cursor.executescript("DROP TABLE if exists Files")
-    cursor.executescript("DROP TABLE if exists Song")
-
-    cursor.executescript(sql_create_album_table)
-    cursor.executescript(sql_create_artist_table)
-    cursor.executescript(sql_create_files_table)
-    cursor.executescript(sql_create_songs_table)
-
-    conn.commit()
+   # db.close()   #conn.commit()

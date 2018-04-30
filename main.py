@@ -7,7 +7,7 @@ from hashing import get_hash
 from database import *
 
 
-def getmetadata(mp3file, conn):
+def getmetadata(mp3file):
     """
     scan mp3 file for metadata and return it
     """
@@ -24,7 +24,7 @@ def getmetadata(mp3file, conn):
 #    db_insert_album(conn, f.album, f.albumartist)
     return metadata
 
-def read_metadata(mp3file, conn):
+def read_metadata(mp3file):
     """
     scan mp3 file for metadata and return it
     """
@@ -49,7 +49,7 @@ def searchfilename(conn, filename):
     """ search database for filename. Returns True if found, otherwise False """
     cursor = conn.cursor()
     filename = os.path.normpath(filename)
-    cursor.execute("SELECT * FROM Files WHERE Filename LIKE ?", (filename,))
+    cursor.execute("SELECT * FROM `Files` WHERE `Filename` LIKE %s", [filename] )
     data = cursor.fetchone()
 
     if data is None:
@@ -67,7 +67,7 @@ def update_file_list(conn,mp3list):
                 # md5 = get_hash(file)
                 md5 = get_hash(file)
                 hash = md5.hexdigest()
-                meta = read_metadata(file,conn)
+                meta = read_metadata(file)
                 #print ('Update DB {} '.format(meta))
                 result = db_insert_filename(conn=conn, hash=hash, filename=file.absolute(), metadata=meta)
     return
@@ -76,8 +76,8 @@ if __name__ == "__main__":
     database = 'mydb.db'
     #    unlock_db(database)
     mp3_root = 'f:/mp3dev/'
-    conn = create_connection(database)
-    create_new_db(conn)
+    conn = pymsql_connect()
+    create_new_db()
     mp3list = scanfolder_glob(mp3_root)
 
     update_file_list(conn,mp3list)
@@ -85,4 +85,4 @@ if __name__ == "__main__":
     # read some tags and print
     files = db_getfilelist(conn=conn)
     for file in files:
-        getmetadata(file, conn=conn)
+        getmetadata(file)
