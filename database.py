@@ -3,14 +3,14 @@ import mysql.connector as mariadb
 import pymysql.cursors
 import configparser
 import os
-
+import re
 
 def pymsql_connect(db_host, db_user, db_pass, db_database):
-    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
+    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database, charset='utf8')
     cursor = conn.cursor()
     return conn
 def mariadb_connect():
-    mariadb_connection = mariadb.connect(host='192.168.0.20', user='root', password='newpwd', database='mp3db')
+    mariadb_connection = mariadb.connect(host='192.168.0.20', user='root', password='newpwd', database='mp3db', charset='utf8')
     cursor = mariadb_connection.cursor()
     return cursor
 
@@ -127,29 +127,20 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
     :param metadata object
     """
     # insert data into database
-    # sql = 'INSERT OR REPLACE INTO Files(filename) VALUES(?) '
-    # cur = conn.cursor()
     cursor = conn.cursor()
-    # cursor.execute(sql, data)
-    #filename = str(filename)
     filename = os.path.realpath(filename)
-    filename =filename.replace('\\', '/')
+    filename = filename.replace('\\', '/')
 
-    # album = metadata.album
-    # artist = metadata.artist
-    # title = metadata.title
-    album = metadata.tags["ALBUM"][0]
-    title = metadata.tags["TITLE"][0]
-    artist = metadata.tags["ARTIST"][0]
-    # cursor.execute('INSERT IGNORE INTO Files (hash,filename, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (hash, filename, album, artist, title))
+    album = ''.join(metadata.tags["ALBUM"])
+    title = ''.join(metadata.tags["TITLE"])
+    artist = ''.join(metadata.tags["ARTIST"])
+
     try:
         cursor.execute('INSERT IGNORE INTO Files (filename, size, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (filename, size, album, artist, title))
         file_idx = cursor.lastrowid
     except Exception as e:
-        print ("db_insert_filename_taglib error: {} {} {} {} {} {}".format(filename, size, album, artist, title, e))
+        print ("db_insert_filename_taglib error: filename: {} size: {} album: {} artist: {} title: {} error: {}".format(filename, size, album, artist, title, e))
         file_idx = None
-    # print ("Insert {}".format(filename))
-
 
     # populate album table
     try:
@@ -162,15 +153,6 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
         print ("db_insert_filename_taglib error: {}".format(e))
         album_idx = None
         pass
-
-        # print ("Found album at {}".format(cursor.fetchall)) # don't insert new artists
-#        res = cursor.fetchall()
-#        for k in res:
-            # print ("k ",k)
-#        artist_idx = cursor.lastrowid
-
-    #cursor.execute('INSERT IGNORE INTO Album (title,albumartist) VALUES (%s,%s)', (album, artist))
-
 
     # populate Albumartist table
     try:
@@ -198,8 +180,6 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
         print ("db_insert_filename_taglib error: {}".format(e))
         pass
     song_idx = cursor.lastrowid
-    #print ("results: {} {} {} {} ".format(file_idx, album_idx, artist_idx,song_idx))
-    # print ("DB insert result {}".format(result))
     conn.commit()
     return
 
