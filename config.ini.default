@@ -1,6 +1,6 @@
 [DEFAULT]
-server = 192.168.0.20
+server = 127.0.0.1
 user = root
-pass = newpwd
+pass = password
 db_database = mp3db
 
