@@ -2,16 +2,10 @@ import sqlite3
 import mysql.connector as mariadb
 import pymysql.cursors
 import configparser
+import os
 
-config = configparser.ConfigParser()
-config.sections()
-config.read('config.ini')
-db_host = config['DEFAULT']['server']
-db_user = config['DEFAULT']['user']
-db_pass = config['DEFAULT']['pass']
-db_database = config['DEFAULT']['db_database']
 
-def pymsql_connect():
+def pymsql_connect(db_host, db_user, db_pass, db_database):
     conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
     cursor = conn.cursor()
     return conn
@@ -59,7 +53,7 @@ def create_connection(db_file):
     return None
 
 
-def db_insert_filename(conn, filename, hash, metadata):
+def db_insert_filename(conn, filename, size, metadata):
     """ insert data into database
     :param conn: connection
     :param filename: filename to insert
@@ -71,20 +65,54 @@ def db_insert_filename(conn, filename, hash, metadata):
     # cur = conn.cursor()
     cursor = conn.cursor()
     # cursor.execute(sql, data)
-    filename = str(filename)
+    #filename = str(filename)
+    filename = os.path.realpath(filename)
+    filename =filename.replace('\\', '/')
+
     album = metadata.album
     artist = metadata.artist
     title = metadata.title
-    print ('Update database: {} | {} | {} | {} | {}'.format(filename, hash, album, artist,title))
-    cursor.execute('INSERT IGNORE INTO Files (hash,filename, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (hash, filename, album, artist, title))
+
+    # cursor.execute('INSERT IGNORE INTO Files (hash,filename, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (hash, filename, album, artist, title))
+    cursor.execute('INSERT IGNORE INTO Files (filename, size, album, artist, title) VALUES (%s,%s,%s,%s,%s)', (filename, size,album, artist, title))
+    print ("Insert {}".format(filename))
     file_idx = cursor.lastrowid
-    cursor.execute('INSERT IGNORE INTO Album (title,albumartist) VALUES (%s,%s)', (album, artist))
+
+    # populate album table
+    cursor.execute("SELECT * FROM Album WHERE title LIKE %s", (album))  # look for existing album
+    if cursor.fetchone() is None: # if not found, insert new artist
+        cursor.execute('INSERT  IGNORE INTO Album (title,albumartist) VALUES (%s, %s)', (album,artist))
+        artist_idx = cursor.lastrowid
+    else:
+        print ("Found album at {}".format(cursor.fetchall)) # don't insert new artists
+        res = cursor.fetchall()
+        for k in res:
+            print ("k ",k)
+        artist_idx = cursor.lastrowid
+
+    #cursor.execute('INSERT IGNORE INTO Album (title,albumartist) VALUES (%s,%s)', (album, artist))
     album_idx = cursor.lastrowid
-    cursor.execute('INSERT  IGNORE INTO Albumartist (name) VALUES (%s)', (artist,))
-    artist_idx = cursor.lastrowid
-    cursor.execute('INSERT  IGNORE INTO Song (title,artist,album,filename) VALUES (%s,%s,%s,%s)', (title,artist_idx,album_idx,filename))
+
+    # populate Albumartist table
+    try:
+        cursor.execute("SELECT * FROM Albumartist WHERE Name LIKE %s", (artist)) # look for existing artist
+    except:
+        print ("Some error with {} ".format(filename))
+        pass
+    if cursor.fetchone() is None: # if not found, insert new artist
+        cursor.execute('INSERT  IGNORE INTO Albumartist (name) VALUES (%s)', (artist,))
+        artist_idx = cursor.lastrowid
+    else:
+        print ("Found artist at {}".format(cursor.fetchall)) # don't insert new artists
+        res = cursor.fetchall()
+        for k in res:
+            print ("k ",k)
+        artist_idx = cursor.lastrowid
+
+
+    cursor.execute('INSERT  IGNORE INTO Song (title,artist,album,filename) VALUES (%s,%s,%s,%s)', (title,artist_idx,album_idx,file_idx))
     song_idx = cursor.lastrowid
-    print ("results: {} {} {} {} ".format(file_idx, album_idx, artist_idx,song_idx))
+    #print ("results: {} {} {} {} ".format(file_idx, album_idx, artist_idx,song_idx))
     # print ("DB insert result {}".format(result))
     conn.commit()
     return
@@ -105,6 +133,13 @@ def db_getfilelist(conn):
     return cursor
 
 def create_new_db():
+    config = configparser.ConfigParser()
+    config.sections()
+    config.read('config.ini')
+    db_host = config['DEFAULT']['server']
+    db_user = config['DEFAULT']['user']
+    db_pass = config['DEFAULT']['pass']
+    db_database = config['DEFAULT']['db_database']
     conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
 
     PATH_TO_FILE = "mp3db.sql"
