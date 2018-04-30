@@ -77,7 +77,7 @@ if __name__ == "__main__":
     #    unlock_db(database)
     mp3_root = 'f:/mp3dev/'
     conn = create_connection(database)
-    reset_database(conn)
+    create_new_db(conn)
     mp3list = scanfolder_glob(mp3_root)
 
     update_file_list(conn,mp3list)

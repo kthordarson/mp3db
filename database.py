@@ -64,6 +64,8 @@ def db_insert_filename(conn, filename, hash, metadata):
     title = metadata.title
     print ('Update database: {} {} {}'.format(album, artist,title))
     cursor.execute('INSERT OR REPLACE INTO Files (hash,filename, album, artist, title) VALUES (?,?,?,?,?)', (hash, filename, album, artist, title))
+    cursor.execute('INSERT OR REPLACE INTO Album (title,albumartist) VALUES (?,?)', (title, artist))
+    cursor.execute('INSERT OR REPLACE INTO Albumartist (name) VALUES (?)', (artist,))
     # print ("DB insert result {}".format(result))
     conn.commit()
     return cursor.lastrowid
@@ -82,3 +84,37 @@ def db_getfilelist(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM Files')
     return cursor
+
+def create_new_db(conn):
+
+    sql_create_album_table = "CREATE TABLE Album ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Title` TEXT NOT NULL, `Albumartist` TEXT NOT NULL );"
+
+    sql_create_artist_table = "CREATE TABLE Albumartist ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Name` TEXT NOT NULL );"
+    
+    sql_create_files_table = """
+    CREATE TABLE Files ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Hash` TEXT, `Filename` TEXT, `Album` TEXT, `Artist` TEXT, `Title` TEXT );
+    """
+
+    sql_create_songs_table = """
+    CREATE TABLE Song ( `ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, `Title` TEXT NOT NULL, `Artist` INTEGER NOT NULL, `Album` INTEGER NOT NULL, `Filename` TEXT );
+    """
+
+    cursor = conn.cursor()
+
+    # Enable Foreign key constraints
+
+    cursor.execute("PRAGMA foreign_keys = ON;")
+
+    # Execute the DROP Table SQL statement
+
+    cursor.executescript("DROP TABLE if exists Album")
+    cursor.executescript("DROP TABLE if exists Albumartist")
+    cursor.executescript("DROP TABLE if exists Files")
+    cursor.executescript("DROP TABLE if exists Song")
+
+    cursor.executescript(sql_create_album_table)
+    cursor.executescript(sql_create_artist_table)
+    cursor.executescript(sql_create_files_table)
+    cursor.executescript(sql_create_songs_table)
+
+    conn.commit()
