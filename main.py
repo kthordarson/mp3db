@@ -87,7 +87,6 @@ if __name__ == "__main__":
     db_user = config['DEFAULT']['user']
     db_pass = config['DEFAULT']['pass']
     db_database = config['DEFAULT']['db_database']
-    database = 'mydb.db'
 
     mp3_root = config['DEFAULT']['mp3_root_path']
     conn = pymsql_connect(db_host, db_user, db_pass, db_database)
