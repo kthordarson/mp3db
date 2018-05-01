@@ -69,7 +69,6 @@ def searchfilename(conn, filename):
         return True
     # return True
 
-
 def update_file_list(conn,mp3list):
     """
     # refresh file list and update db if needed
@@ -94,6 +93,7 @@ def update_file_list(conn,mp3list):
     return
 
 if __name__ == "__main__":
+    start_time = time.time()
     config = configparser.ConfigParser()
     config.sections()
     config.read('config.ini')
@@ -106,8 +106,6 @@ if __name__ == "__main__":
     conn = pymsql_connect(db_host, db_user, db_pass, db_database)
 
 #    create_new_db()
-
-    start_time = time.time()
     mp3list = scanfolder_glob(mp3_root)
     update_file_list(conn,mp3list)
     end_time = time.time()
