@@ -1,51 +1,36 @@
 # mp3 collection thing
 
 # from mediafile import MediaFile
-import os
 from pathlib import Path
-from hashing import get_hash
 from database import *
 import configparser
 import taglib
 import time
-import sys
-def getmetadata(mp3file):
-    """
-    scan mp3 file for metadata and return it
-    """
-    metadata = None
-    f = MediaFile(mp3file[2])
-    if f.title is None:
-        f.title = ''
 
-    if f.album is None:
-        f.album = ''
-    if f.albumartist is None:
-        f.albumartist = ''
-    return metadata
 def getmetadata_taglib(mp3file):
     """
     scan mp3 file with pytaglib
     :param mp3file: full path of filename to scan
     :return: metadata
     """
-    metadata = None
+    # metadata = None
     f = taglib.File(mp3file)
-    # print (f.tags)
-    return f
-def read_metadata(mp3file):
-    """
-    scan mp3 file for metadata and return it
-    """
-    metadata = None
-    f = None
     try:
-        f = MediaFile(mp3file)
-        return f
+        album = ''.join(f.tags["ALBUM"])
     except:
-        print ("read_metadata error")
-        pass
-        #print ("Could not read metadata from {} ".format(mp3file))
+        f.tags["ALBUM"] = ''
+
+    try:
+        title = ''.join(f.tags["TITLE"])
+    except:
+        f.tags["TITLE"] = ''
+
+    try:
+        artist = ''.join(f.tags["ARTIST"])
+    except:
+        f.tags["ARTIST"] = ''
+
+    # print (f.tags)
     return f
 
 def scanfolder_glob(folder):
