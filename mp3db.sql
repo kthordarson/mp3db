@@ -20,49 +20,53 @@ USE `mp3db`;
 -- Dumping structure for table mp3db.album
 DROP TABLE IF EXISTS `album`;
 CREATE TABLE IF NOT EXISTS `album` (
-  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `album_id` int(11) NOT NULL AUTO_INCREMENT,
   `Title` text DEFAULT NULL,
-  `Albumartist` text DEFAULT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE KEY `ID` (`Id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1301 DEFAULT CHARSET=utf8;
+  `Artist` text DEFAULT NULL,
+  PRIMARY KEY (`album_id`),
+  UNIQUE KEY `ID` (`album_id`),
+  KEY `album_id` (`album_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
--- Dumping structure for table mp3db.albumartist
-DROP TABLE IF EXISTS `albumartist`;
-CREATE TABLE IF NOT EXISTS `albumartist` (
-  `Id` int(11) NOT NULL AUTO_INCREMENT,
+-- Dumping structure for table mp3db.artist
+DROP TABLE IF EXISTS `artist`;
+CREATE TABLE IF NOT EXISTS `artist` (
+  `artist_id` int(11) NOT NULL AUTO_INCREMENT,
   `Name` text NOT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE KEY `Id` (`Id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2048 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`artist_id`),
+  UNIQUE KEY `Id` (`artist_id`),
+  KEY `artist_id` (`artist_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
 -- Dumping structure for table mp3db.files
 DROP TABLE IF EXISTS `files`;
 CREATE TABLE IF NOT EXISTS `files` (
-  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `file_id` int(11) NOT NULL AUTO_INCREMENT,
   `size` int(11) NOT NULL,
   `Filename` text NOT NULL,
   `Album` text DEFAULT NULL,
   `Artist` text DEFAULT NULL,
   `Title` text DEFAULT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE KEY `Id` (`Id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14481 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`file_id`),
+  UNIQUE KEY `Id` (`file_id`),
+  KEY `file_id` (`file_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
 -- Dumping structure for table mp3db.song
 DROP TABLE IF EXISTS `song`;
 CREATE TABLE IF NOT EXISTS `song` (
-  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `song_id` int(11) NOT NULL AUTO_INCREMENT,
   `Title` text DEFAULT NULL,
-  `Artist` int(11) DEFAULT NULL,
-  `Album` int(11) DEFAULT NULL,
-  `Filename` text NOT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE KEY `Id` (`Id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14561 DEFAULT CHARSET=utf8;
+  `artist_id` int(11) DEFAULT NULL,
+  `album_id` int(11) DEFAULT NULL,
+  `filename_id` text NOT NULL,
+  PRIMARY KEY (`song_id`),
+  UNIQUE KEY `song_id` (`song_id`),
+  KEY `song_id_2` (`song_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
