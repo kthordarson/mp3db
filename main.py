@@ -34,13 +34,22 @@ def getmetadata_taglib(mp3file):
     return f
 
 def scanfolder_glob(folder):
-    """ return list of mp3 files """
+    """
+    scan folder for mp3 files
+    :param folder: root folder of mp3 files
+    :return: list of mp3 files
+    """
     found_files = Path(folder).glob('**/*.mp3')
     return found_files
 
 
 def searchfilename(conn, filename):
-    """ search database for filename. Returns True if found, otherwise False """
+    """
+    search database for filename. Returns True if found, otherwise False
+    :param conn: connection object
+    :param filename: file to search for
+    :return: true or false
+    """
     cursor = conn.cursor()
     filename = os.path.realpath(filename)
     filename = filename.replace('\\', '/')
@@ -62,7 +71,12 @@ def searchfilename(conn, filename):
 
 
 def update_file_list(conn,mp3list):
+    """
     # refresh file list and update db if needed
+    :param conn: connection object
+    :param mp3list: list of files
+    :return:
+    """
     for file in sorted(mp3list):
         with conn:
             file = os.path.realpath(file)

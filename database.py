@@ -4,6 +4,13 @@ import os
 
 
 def pymsql_connect(db_host, db_user, db_pass, db_database):
+    """ Connect to mysql database
+    :param db_host: server name or ip
+    :param db_user: username
+    :param db_pass: password
+    :param db_database: name of database
+    :return:
+    """
     conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database, charset='utf8')
     # cursor = conn.cursor()
     return conn
@@ -50,7 +57,7 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
     try:
         cursor.execute("SELECT * FROM Albumartist WHERE Name LIKE %s", (artist))  # look for existing artist
         artist_idx = cursor.lastrowid
-    except:
+    except Exception as e:
         print("db_insert_filename_taglib error: {} ".format(filename))
         artist_idx = cursor.lastrowid
         pass
@@ -78,6 +85,10 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
 
 
 def create_new_db():
+    """
+    this will delete the database and recreate all tables
+    :return:
+    """
     config = configparser.ConfigParser()
     config.sections()
     config.read('config.ini')
@@ -104,14 +115,14 @@ def create_new_db():
         if tempLine[0] == '#':
             continue
         fullLine += line
-        if not ';' in line:
+        if ';' not in line:
             continue
         # You can remove this. It's for debugging purposes.
         # print "[line] ", fullLine, "[/line]"
         with conn.cursor() as cur:
             try:
                 cur.execute(fullLine)
-            except:
+            except Exception as e:
                 # print ("Error with create new db")
                 continue
         fullLine = ''
