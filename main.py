@@ -105,7 +105,7 @@ if __name__ == "__main__":
     mp3_root = config['DEFAULT']['mp3_root_path']
     conn = pymsql_connect(db_host, db_user, db_pass, db_database)
 
-    create_new_db()
+#    create_new_db()
 
     start_time = time.time()
     mp3list = scanfolder_glob(mp3_root)
