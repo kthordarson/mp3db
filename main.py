@@ -213,7 +213,18 @@ if __name__ == "__main__":
     for k in mp3list:
         filenumber += 1
         mp3list_temp.append(k)
-    update_db(mp3list_temp,dbconfig=dbconfig)
+
+    threads = []
+    thread_id = 1
+    max_threads = 4
+    for x in range(max_threads):
+        t = threading.Thread(target=update_db, args=(mp3list_temp,dbconfig))
+        t.start()
+        threads.append(t)
+        thread_id += 1
+    for i in threads:
+        i.join(timeout=1.0)
+    # update_db(mp3list_temp,dbconfig=dbconfig)
 
     end_time = time.time()
     print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
