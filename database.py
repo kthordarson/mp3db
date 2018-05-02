@@ -76,7 +76,7 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
     :param metadata object
     """
     # insert data into database
-    # cursor = conn.cursor()
+    #cursor = conn.cursor()
     filename = os.path.realpath(filename)
     filename = filename.replace('\\', '/')
 
@@ -89,7 +89,8 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
     # SET @last_id_in_table1 = LAST_INSERT_ID();
     filename_id = cursor.lastrowid
     cursor.execute('SELECT LAST_INSERT_ID()')
-    # conn.commit()
+#    cursor.close()
+#    conn.commit()
 
     # populate album table
     res = cursor.execute('SELECT * FROM album where Title like (%s)', (album,)) # search for existing album
@@ -99,7 +100,8 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
         album_id = cursor.lastrowid
     else: album_id = data[0] # else get id of album
 #    cursor.execute('SELECT LAST_INSERT_ID()')
-    # conn.commit()
+#    cursor.close()
+#    onn.commit()
 
     # populate artist table
     res = cursor.execute('SELECT * FROM artist where Name like (%s)', (artist,)) # search for existing artis)
@@ -108,8 +110,9 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
         cursor.execute('INSERT IGNORE INTO artist (name) VALUES (%s)', (artist,))
         artist_id = cursor.lastrowid
     else: artist_id = data[0]
-    # cursor.execute('SELECT LAST_INSERT_ID()')
-    # conn.commit()
+    # cursor.execute('SELECT LAST_INSERT_ID()')#
+#    cursor.close()
+#    conn.commit()
 
     # populate song table
  #   print ("artist_id {} is {} album_id {} is {} title is {} filename_id {} is filename {} "
@@ -117,7 +120,8 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
     cursor.execute('INSERT INTO Song (title,artist_id,album_id,filename_id) VALUES (%s,%s,%s,%s)',
                    (title, artist_id, album_id, filename_id))
     song_id = cursor.lastrowid
-    # conn.commit()
+#    cursor.close()
+#    conn.commit()
     return
 
 def create_new_db():
