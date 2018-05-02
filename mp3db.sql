@@ -42,16 +42,18 @@ CREATE TABLE IF NOT EXISTS `artist` (
 -- Data exporting was unselected.
 -- Dumping structure for table mp3db.files
 DROP TABLE IF EXISTS `files`;
-CREATE TABLE IF NOT EXISTS `files` (
-  `file_id` int(11) NOT NULL AUTO_INCREMENT,
-  `size` int(11) NOT NULL,
-  `Filename` text NOT NULL,
-  `Album` text,
-  `Artist` text,
-  `Title` text,
-  PRIMARY KEY (`file_id`),
-  UNIQUE KEY `Id` (`file_id`),
-  KEY `file_id` (`file_id`)
+CREATE TABLE `files` (
+	`file_id` INT(11) NOT NULL AUTO_INCREMENT,
+	`size` INT(11) NOT NULL,
+	`Filename` TEXT NOT NULL,
+	`Album` TEXT NULL,
+	`Artist` TEXT NULL,
+	`Title` TEXT NULL,
+	`filehash` TEXT NOT NULL,
+	PRIMARY KEY (`file_id`),
+	UNIQUE INDEX `Id` (`file_id`),
+	INDEX `file_id` (`file_id`),
+	FULLTEXT INDEX `filehash` (`filehash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.

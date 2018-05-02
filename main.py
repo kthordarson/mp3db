@@ -86,6 +86,15 @@ def searchfilename(conn, filename):
         return True
     # return True
 
+def get_hash(filename):
+    #create fake filehash for faster searching...
+    size = os.path.getsize(filename)
+    filehash = (str(size)+filename)
+    filehash = filename.encode('utf-8')
+    filehash = hashlib.md5(filehash)
+    filehash = filehash.hexdigest()
+    return filehash
+
 def update_db(file_list, dbconfig):
     cnx = mysql.connector.connect(**dbconfig)
     cnx.autocommit = True
@@ -101,8 +110,10 @@ def update_db(file_list, dbconfig):
         if not shutdown_event.is_set():
             file = os.path.realpath(file)
             file = file.replace('\\', '/')
+            filehash = get_hash(file)
             #cursor.execute(sql_search, file)
-            cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
+            # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
+            cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
             data = cursor.fetchone()
             if data is None:  # Search db, insert if file not already in db
                 meta = getmetadata_taglib(file)
@@ -193,7 +204,7 @@ if __name__ == "__main__":
     # connect to our db
 #    conn = pymsql_connect(db_host, db_user, db_pass, db_database)
 
-    create_new_db()
+#    create_new_db()
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 

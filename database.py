@@ -1,7 +1,7 @@
 import pymysql.cursors
 import configparser
 import os
-
+import hashlib
 
 def pymsql_connect(db_host, db_user, db_pass, db_database):
     """ Connect to mysql database
@@ -80,12 +80,18 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
     filename = os.path.realpath(filename)
     filename = filename.replace('\\', '/')
 
+    #create fake filehash for faster searching...
+    filehash = (str(size)+filename)
+    filehash = filename.encode('utf-8')
+    filehash = hashlib.md5(filehash)
+    filehash = filehash.hexdigest()
+
     album = ''.join(metadata.tags["ALBUM"])
     title = ''.join(metadata.tags["TITLE"])
     artist = ''.join(metadata.tags["ARTIST"])
     # print ("Processing {} found fields: ALBUM {} ARTIST {} TITLE {}".format(filename, album, artist, title))
-    cursor.execute('INSERT INTO Files (filename, size, album, artist, title) VALUES (%s,%s,%s,%s,%s)',
-                   (filename, size, album, artist, title))
+    cursor.execute('INSERT INTO Files (filename, size, album, artist, title, filehash) VALUES (%s,%s,%s,%s,%s,%s)',
+                   (filename, size, album, artist, title, filehash))
     # SET @last_id_in_table1 = LAST_INSERT_ID();
     filename_id = cursor.lastrowid
     cursor.execute('SELECT LAST_INSERT_ID()')
