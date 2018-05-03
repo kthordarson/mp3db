@@ -68,7 +68,7 @@ def db_insert_filename_taglib(conn, filename, size, metadata):
     conn.commit()
     return
 
-def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
+def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
     """ insert data into database
     :param conn: connection
     :param filename: filename to insert
@@ -86,48 +86,54 @@ def db_insert_filename_taglib_cursor(cursor, filename, size, metadata):
     filehash = hashlib.md5(filehash)
     filehash = filehash.hexdigest()
 
-    album = ''.join(metadata.tags["ALBUM"])
-    title = ''.join(metadata.tags["TITLE"])
-    artist = ''.join(metadata.tags["ARTIST"])
-    # print ("Processing {} found fields: ALBUM {} ARTIST {} TITLE {}".format(filename, album, artist, title))
-    cursor.execute('INSERT INTO Files (filename, size, album, artist, title, filehash) VALUES (%s,%s,%s,%s,%s,%s)',
-                   (filename, size, album, artist, title, filehash))
-    # SET @last_id_in_table1 = LAST_INSERT_ID();
-    filename_id = cursor.lastrowid
-    cursor.execute('SELECT LAST_INSERT_ID()')
-#    cursor.close()
-#    conn.commit()
+#    album = ''.join(metadata.tags["ALBUM"])
+#    title = ''.join(metadata.tags["TITLE"])
+#    artist = ''.join(metadata.tags["ARTIST"])
+    tag_list = {'filehash':filehash, 'filename':filename, 'size': str(size)}
+    try:
+        cursor.execute('INSERT IGNORE INTO Files (filehash,filename,size) VALUES (%s, %s, %s)', (filehash,filename,size))
+        conn.commit()
+    except:
+        pass
 
-    # populate album table
-    res = cursor.execute('SELECT * FROM album where Title like (%s)', (album,)) # search for existing album
-    data = cursor.fetchone() # store search results
-    if not data: # if nothing found...
-        cursor.execute('INSERT IGNORE INTO Album (title,artist) VALUES (%s, %s)', (album, artist)) # insert into db
-        album_id = cursor.lastrowid
-    else: album_id = data[0] # else get id of album
-#    cursor.execute('SELECT LAST_INSERT_ID()')
-#    cursor.close()
-#    onn.commit()
+    last_row = cursor.lastrowid
+    # insert all found fields into DB
+    #print ("Filename: {} ".format(filename))
+    create_column = False
+    for tag in metadata.tags:
+        tag_list[tag] = metadata.tags[tag]
+    for field,tag_value in tag_list.items():
+        try:
+            tag_value = ''.join(tag_value)
+        except:
+            pass
+        # print ("field and value {} {} ".format(field, tag_value))
+        try:
+            # print ("try select")
+            result = cursor.execute('select * FROM %s' % (field))
+            # conn.commit()
+            create_column = True
+        except:
+            pass
+            #print ("select failed for {} ".format(field))
+        if create_column:
+           try:
+                cursor.execute('ALTER TABLE Files ADD %s varchar (255) ' % (field))
+                # conn.commit()
+           except:
+                #print ("Could not create {} ".format(field) )
+                pass
+        #sql_string ='INSERT INTO Files ( '  + field + ') VALUE ("' + tag_value + '") WHERE file_id = ' + str(last_row) # WHERE filehash='+filehash
+        sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
+        # print ("inserting from {} ---- {} ".format(filename, sql_string))
+        try:
+            cursor.execute(sql_string)
+            # conn.commit()
+            #conn.close()
+        except:
+            print ("Error in UPDATE")
 
-    # populate artist table
-    res = cursor.execute('SELECT * FROM artist where Name like (%s)', (artist,)) # search for existing artis)
-    data = cursor.fetchone()
-    if not data:
-        cursor.execute('INSERT IGNORE INTO artist (name) VALUES (%s)', (artist,))
-        artist_id = cursor.lastrowid
-    else: artist_id = data[0]
-    # cursor.execute('SELECT LAST_INSERT_ID()')#
-#    cursor.close()
-#    conn.commit()
-
-    # populate song table
- #   print ("artist_id {} is {} album_id {} is {} title is {} filename_id {} is filename {} "
- #          .format(artist_id, artist, album_id, album, title , filename_id, os.path.basename(filename)))
-    cursor.execute('INSERT INTO Song (title,artist_id,album_id,filename_id) VALUES (%s,%s,%s,%s)',
-                   (title, artist_id, album_id, filename_id))
-    song_id = cursor.lastrowid
-#    cursor.close()
-#    conn.commit()
+        result = cursor.fetchone()
     return
 
 def create_new_db():
