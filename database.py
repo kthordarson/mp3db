@@ -27,11 +27,13 @@ def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
     tag_list = {'filehash':filehash, 'filename':filename, 'size': str(size)}
     try:
         cursor.execute('INSERT IGNORE INTO Files (filehash,filename,size) VALUES (%s, %s, %s)', (filehash,filename,size))
+        last_row = cursor.lastrowid
         conn.commit()
     except:
+        last_row = 0
         pass
 
-    last_row = cursor.lastrowid
+
     # insert all found fields into DB
     #print ("Filename: {} ".format(filename))
     create_column = False
@@ -64,14 +66,18 @@ def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
                 #print ("Could not create {} ".format(field) )
                 pass
         #sql_string ='INSERT INTO Files ( '  + field + ') VALUE ("' + tag_value + '") WHERE file_id = ' + str(last_row) # WHERE filehash='+filehash
-        sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
+        # sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
+        #sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
+        sql_string = "UPDATE IGNORE Files SET  %s = $s WHERE file_id = %s"
         # print ("inserting from {} ---- {} ".format(filename, sql_string))
+        last_row = int(last_row)
         try:
-            cursor.execute(sql_string)
-            # conn.commit()
+            #cursor.execute(sql_string, (field, tag_value, last_row))
+            cursor.execute("UPDATE IGNORE Files set {} = '{}' WHERE file_id = {}".format(field, tag_value, int(last_row)))            # conn.commit()
             #conn.close()
-        except:
-            print ("Error in UPDATE")
+        except Exception as e:
+            pass
+            #print ("Error in UPDATE {} {}".format(e, sql_string))
 
         result = cursor.fetchone()
     return
@@ -88,7 +94,7 @@ def create_new_db():
     db_user = config['DEFAULT']['user']
     db_pass = config['DEFAULT']['pass']
     db_database = config['DEFAULT']['db_database']
-    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database)
+    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database,charset='utf8')
     # conn.cursor().set_character_set('utf8')
     conn.set_charset('utf8')
     conn.cursor().execute('SET NAMES utf8;')
