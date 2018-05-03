@@ -45,38 +45,19 @@ DROP TABLE IF EXISTS `files`;
 CREATE TABLE `files` (
 	`file_id` INT(11) NOT NULL AUTO_INCREMENT,
 	`size` INT(11) NOT NULL,
-	`Filename` TEXT NOT NULL,
-	`Album` TEXT NULL,
-	`Artist` TEXT NULL,
-	`Title` TEXT NULL,
-	`filehash` TEXT NOT NULL,
+	`Filename` VARCHAR(255) NOT NULL,
+	`Album` VARCHAR(255) NULL DEFAULT NULL,
+	`Artist` VARCHAR(255) NULL DEFAULT NULL,
+	`Title` VARCHAR(255) NULL DEFAULT NULL,
+	`filehash` VARCHAR(255) NOT NULL,
 	PRIMARY KEY (`file_id`),
 	UNIQUE INDEX `Id` (`file_id`),
-	INDEX `file_id` (`file_id`),
-	FULLTEXT INDEX `filehash` (`filehash`)
+	UNIQUE INDEX `filehash` (`filehash`),
+	INDEX `file_id` (`file_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
 -- Dumping structure for view mp3db.mast
-DROP VIEW IF EXISTS `mast`;
--- Creating temporary table to overcome VIEW dependency errors
-CREATE TABLE `mast` (
-	`album_id` INT(11) NOT NULL,
-	`Title` TEXT NULL COLLATE 'utf8_general_ci',
-	`Artist` TEXT NULL COLLATE 'utf8_general_ci'
-) ENGINE=MyISAM;
-
--- Dumping structure for view mp3db.myview1
-DROP VIEW IF EXISTS `myview1`;
--- Creating temporary table to overcome VIEW dependency errors
-CREATE TABLE `myview1` (
-	`song_id` INT(11) NOT NULL,
-	`Title` TEXT NULL COLLATE 'utf8_general_ci',
-	`artist_id` INT(11) NULL,
-	`album_id` INT(11) NULL,
-	`filename_id` TEXT NOT NULL COLLATE 'utf8_general_ci'
-) ENGINE=MyISAM;
-
 -- Dumping structure for table mp3db.song
 DROP TABLE IF EXISTS `song`;
 CREATE TABLE IF NOT EXISTS `song` (
@@ -101,18 +82,6 @@ CREATE TABLE `test01` (
 	`name` TEXT NOT NULL COLLATE 'utf8_general_ci',
 	`Title` TEXT NULL COLLATE 'utf8_general_ci'
 ) ENGINE=MyISAM;
-
--- Dumping structure for view mp3db.mast
-DROP VIEW IF EXISTS `mast`;
--- Removing temporary table and create final VIEW structure
-DROP TABLE IF EXISTS `mast`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`mp3db`@`%` SQL SECURITY DEFINER VIEW `mast` AS select `album`.`album_id` AS `album_id`,`album`.`Title` AS `Title`,`album`.`Artist` AS `Artist` from `album`;
-
--- Dumping structure for view mp3db.myview1
-DROP VIEW IF EXISTS `myview1`;
--- Removing temporary table and create final VIEW structure
-DROP TABLE IF EXISTS `myview1`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `myview1` AS select `artist_id`.`song_id` AS `song_id`,`artist_id`.`Title` AS `Title`,`artist_id`.`artist_id` AS `artist_id`,`artist_id`.`album_id` AS `album_id`,`artist_id`.`filename_id` AS `filename_id` from `song` `artist_id`;
 
 -- Dumping structure for view mp3db.test01
 DROP VIEW IF EXISTS `test01`;

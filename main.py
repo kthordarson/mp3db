@@ -28,24 +28,7 @@ def getmetadata_taglib(mp3file):
         return f
     except OSError as e:
         print ("Error reading tag from {} ".format(mp3file))
-    #if f is not None: return f
-    #    album = ''.join(f.tags["ALBUM"])
-    #    title = ''.join(f.tags["TITLE"])
-    # try:
-    #     album = ''.join(f.tags["ALBUM"])
-    # except:
-    #     f.tags["ALBUM"] = ''
-    # try:
-    #     title = ''.join(f.tags["TITLE"])
-    # except:
-    #     f.tags["TITLE"] = ''
-    #
-    # try:
-    #     artist = ''.join(f.tags["ARTIST"])
-    # except:
-    #     f.tags["ARTIST"] = ''
-    #
-    # # print (f.tags)
+        time.sleep(1)
     return None
 
 def scanfolder_glob(folder):
@@ -57,37 +40,6 @@ def scanfolder_glob(folder):
     found_files = Path(folder).glob('**/*.mp3')
     return found_files
 
-def find_files(directory, pattern):
-    for root, dirs, files in os.walk(directory):
-        for basename in files:
-            if fnmatch.fnmatch(basename, pattern):
-                filename = os.path.join(root, basename)
-                yield filename
-
-
-
-def searchfilename(conn, filename):
-    """
-    search database for filename. Returns True if found, otherwise False
-    :param conn: connection object
-    :param filename: file to search for
-    :return: true or false
-    """
-    cursor = conn.cursor()
-    filename = os.path.realpath(filename)
-    filename = filename.replace('\\', '/')
-    sql_search = "SELECT * FROM Files WHERE Filename LIKE %s"
-    cursor.execute(sql_search, filename)
-    data = cursor.fetchone()
-    cursor.close()
-    if data is None:
-        #print('There is no file named [{}] in our database'.format(filename))
-        return False
-    else:
-        #print('Component %s found in %s row(s)' % (filename, data))
-        return True
-    # return True
-
 def get_hash(filename):
     #create fake filehash for faster searching...
     size = os.path.getsize(filename)
@@ -97,7 +49,7 @@ def get_hash(filename):
     filehash = filehash.hexdigest()
     return filehash
 
-def update_db(file_list, dbconfig):
+def update_db(mp3list_temp, dbconfig):
     # cnx = mysql.connector.connect(**dbconfig)
     cnx = pymysql.connect(**dbconfig)
     cnx.autocommit = True
@@ -108,9 +60,13 @@ def update_db(file_list, dbconfig):
     thread_id = 1
     cursor = cnx.cursor()
     sql_search = ("SELECT * FROM Files WHERE Filename LIKE %s")
+    run_counter = 1
+    max_files = len(mp3list_temp)
+    mp3list_temp = iter(mp3list_temp)
 
-    for file in file_list:
+    while run_counter < max_files:
         if not shutdown_event.is_set():
+            file = next(mp3list_temp)
             file = os.path.realpath(file)
             file = file.replace('\\', '/')
             filehash = get_hash(file)
@@ -126,51 +82,7 @@ def update_db(file_list, dbconfig):
             #else: print (file + " already in db")
     cnx.close()
 
-def update_db_file(file, dbconfig):
-    # cnx = mysql.connector.connect(**dbconfig)
-    cnx = pymysql.connect(**dbconfig)
-    cnx.autocommit = True
-    cursor = cnx.cursor()
 
-    file = os.path.realpath(file)
-    file = file.replace('\\', '/')
-    filehash = get_hash(file)
-    # cursor.execute(sql_search, file)
-    # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
-    cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
-#    cnx.commit()
-    data = cursor.fetchone()
-    if data is None:  # Search db, insert if file not already in db
-        meta = getmetadata_taglib(file)
-        filesize = os.path.getsize(file)
-        db_insert_filename_taglib_cursor(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
-    # else: print (file + " already in db")
-    cnx.close()
-
-def update_file_list(conn,mp3list, thread_id=1):
-    """
-    # refresh file list and update db if needed
-    :param conn: connection object
-    :param mp3list: list of files
-    :return:
-    """
-
-    cursor = conn.cursor()
-    sql_search = "uSELECT * FROM Files WHERE Filename LIKE %s"
-    print ("Started updating file list")
-    for file in sorted(mp3list):
-        if not shutdown_event.is_set():
-            file = os.path.realpath(file)
-            file = file.replace('\\', '/')
-            cursor.execute(sql_search,file)
-            data = cursor.fetchone()
-            if data is None:  # Search db, insert if file not already in db
-                meta = getmetadata_taglib(file)
-                filesize = os.path.getsize(file)
-                db_insert_filename_taglib(conn=conn, size=filesize, filename=file, metadata=meta)
-            #else: # print (file + " already in db")
-
-    return
 
 def grab_files(directory):
     for name in os.listdir(directory):
@@ -184,17 +96,11 @@ def grab_files(directory):
         #else:
             #print('Unidentified name %s. It could be a symbolic link' % full_path)
 
-def generate_filename(list):
-    for x in list:
-        yield x
-
 if __name__ == "__main__":
 
-
-    # set up the queue to hold all the urls
-    # Use many threads (50 max, or one for each url)
     start_time = time.time()
     start = time.clock()
+
     # read config file
     config = configparser.ConfigParser()
     config.sections()
@@ -210,10 +116,8 @@ if __name__ == "__main__":
         "database": db_database,
         "host" : db_host,
     }
-    # connect to our db
-#    conn = pymsql_connect(db_host, db_user, db_pass, db_database)
 
-    # create_new_db()
+    create_new_db()
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
@@ -226,23 +130,19 @@ if __name__ == "__main__":
     threads = []
     thread_id = 1
     max_threads = 4
-    run_counter = 1
-    max_files = len(mp3list_temp)
-    mp3list_temp = iter(mp3list_temp)
+
     for x in range(max_threads):
-        while run_counter <= max_files:
-            print("Running {} ".format(run_counter))
-            files = next(mp3list_temp)
-            t = threading.Thread(target=update_db_file, args=(files,dbconfig))
-            t.start()
-            threads.append(t)
-            thread_id += 1
-            run_counter += 1
-            for i in threads:
-                i.join(timeout=0.1)
-        #print ('Waiting for threads...')
-        # update_db(mp3list_temp,dbconfig=dbconfig)
+        t = threading.Thread(target=update_db, args=(mp3list_temp, dbconfig))
+        t.start()
+        threads.append(t)
     end = time.clock()
-    print ("The time was {}".format(end - start))
+    try:
+        for i in threads:
+            i.join(timeout=1.0)
+    except (KeyboardInterrupt, SystemExit):
+        print ("Caught Ctrl-C. Cleaning up. Exiting.")
+        shutdown_event.set()
     end_time = time.time()
+
     print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
+
