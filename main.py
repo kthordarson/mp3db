@@ -104,7 +104,7 @@ if __name__ == "__main__":
         "charset": 'utf8',
     }
 
-    create_new_db()
+    # create_new_db()
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
