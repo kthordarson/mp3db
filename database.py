@@ -27,10 +27,10 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
     try:
         cursor.execute('INSERT IGNORE INTO Files (filehash,filename,size) VALUES (%s, %s, %s)',
                        (filehash, filename, size))
-        last_row = cursor.lastrowid
+        file_id = cursor.lastrowid
         conn.commit()
     except:
-        last_row = 0
+        file_id = 0
         pass
 
     # insert all found fields into DB
@@ -52,12 +52,31 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
         except:
             pass
 
-        last_row = int(last_row)
+        last_row = int(file_id)
         try:
             cursor.execute("UPDATE IGNORE Files set {} = '{}' WHERE file_id = {}".format(field, tag_value, int(
                 last_row)))  # conn.commit()
         except Exception as e:
             pass
+    # cursor.execute('select album,artist,file_id,title from files ') # update other tables from file_id
+    cursor.execute('select album, artist, file_id, title from files WHERE file_id = {}'.format(file_id)) # update other tables from file_id
+    # print ("Working on {} ".format(filename))
+    escapes = ''.join([chr(char) for char in range(1, 32)])
+    for row in cursor.fetchall():
+        album, artist, file_id, title = row
+        # title = title.translate(None, escapes)
+        # cursor.execute('insert into album (album, artist) VALUES (%s,%s)',(row[0], row[1]))
+        # print ("INSERT INTO album (album, artist) VALUES '{}','{}'".format(album,artist))
+        cursor.execute("INSERT INTO album (title, artist) VALUES ('{}','{}')".format(album, artist))
+        album_id = cursor.lastrowid
+        cursor.execute("INSERT INTO artist (name) VALUES ('{}')".format(artist))
+        artist_id = cursor.lastrowid
+        sql_command = "INSERT INTO song (file_id, title, album_id, artist_id) VALUES (%s, %s, %s, %s )"
+        try:
+            #cursor.execute("INSERT INTO song (file_id, title, album_id, artist_id) VALUES ('{}','{}','{}','{}')".format(file_id, title,  album_id, artist_id))
+            cursor.execute(sql_command,(file_id, title,  album_id, artist_id))
+        except Exception as e:
+            print ("Error processing {} {}".format(filename,e))
     return
 
 

@@ -12,7 +12,6 @@ from mutagen.easyid3 import EasyID3
 # For use in signaling
 shutdown_event = threading.Event()
 
-
 def getmetadata_mutagen(mp3file):
     """
     scan mp3 file with pytaglib
@@ -79,44 +78,6 @@ def update_db(mp3list_temp, dbconfig):
                     db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
                 run_counter += 1
     # cnx.close() # TODO use WITH
-
-
-def grab_files(directory):
-    for name in os.listdir(directory):
-        full_path = os.path.join(directory, name)
-        if os.path.isdir(full_path):
-            for entry in grab_files(full_path):
-                yield entry
-        elif os.path.isfile(full_path):  # and Path(full_path).suffix == 'mp3':
-            if Path(full_path).suffix == 'mp3':
-                yield full_path
-        # else:
-        # print('Unidentified name %s. It could be a symbolic link' % full_path)
-
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
-
-
-def split(a, n):
-    k, m = divmod(len(a), n)
-    return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
-
-
-def split_seq(seq, p):
-    newseq = []
-    n = len(seq) / p  # min items per subsequence
-    r = len(seq) % p  # remaindered items
-    b, e = 0, n + min(1, r)  # first split
-    for i in range(p):
-        newseq.append(seq[b:e])
-        r = max(0, r - 1)  # use up remainders
-        b, e = e, e + n + min(1, r)  # min(1,r) is always 0 or 1
-
-    return newseq
-
 
 if __name__ == "__main__":
     threads = []
@@ -188,4 +149,4 @@ if __name__ == "__main__":
 
     # done scanning
     # populate tables
-    populate_tables(dbconfig)
+#    populate_tables(dbconfig)
