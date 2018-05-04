@@ -57,7 +57,32 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
             pass
 
         result = cursor.fetchone()
+
     return
+
+def populate_tables(dbconfig):
+    cnx = pymysql.connect(**dbconfig)
+    cnx.autocommit = True
+    cursor = cnx.cursor()
+
+    # now populate other tables
+    #cursor_table1.execute('insert into table2 (part, min, max, unitPrice, date) select part, min, max, unitPrice, now() from table1')
+    #cursor_table1.execute('SELECT part, min, max, unitPrice, NOW() from table1')
+    #for row in cursor_table1.fetchall():
+    #    part, min, max, unitPrice, now = row
+    #    cursor_table2.execute("INSERT INTO table2 VALUES (%s,%s,%s,%s,'%s')" % (
+    #    part, min, max, unitPrice, now.strftime('%Y-%m-%d %H:%M:%S')))
+    cursor.execute('select album,artist,file_id,title from files ')
+    for row in cursor.fetchall():
+        album,artist,file_id,title = row
+        #cursor.execute('insert into album (album, artist) VALUES (%s,%s)',(row[0], row[1]))
+        #print ("INSERT INTO album (album, artist) VALUES '{}','{}'".format(album,artist))
+        cursor.execute("INSERT INTO album (title, artist) VALUES ('{}','{}')".format(album,artist))
+        album_id = cursor.lastrowid
+        cursor.execute("INSERT INTO artist (name) VALUES ('{}')".format(artist))
+        artist_id = cursor.lastrowid
+        cursor.execute("INSERT INTO song (file_id,title,album_id, artist_id) VALUES ('{}','{}','{}','{}')".format(file_id,title,album_id,artist_id))
+    cnx.commit()
 
 
 def create_new_db():

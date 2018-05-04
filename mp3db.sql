@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `song` (
   `Title` text,
   `artist_id` int(11) DEFAULT NULL,
   `album_id` int(11) DEFAULT NULL,
-  `filename_id` text NOT NULL,
+  `file_id` text NOT NULL,
   PRIMARY KEY (`song_id`),
   UNIQUE KEY `song_id` (`song_id`),
   KEY `song_id_2` (`song_id`),
