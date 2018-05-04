@@ -77,22 +77,22 @@ def update_db(mp3list_temp, dbconfig):
     cnx.autocommit = True
     cursor = cnx.cursor()
     run_counter = 1
-
-    for file in mp3list_temp:
-        if not shutdown_event.is_set():
-            file = os.path.realpath(file)
-            file = file.replace('\\', '/')
-            filehash = get_hash(file)
-            # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
-            cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
-            cnx.commit()
-            data = cursor.fetchone()
-            if data is None:  # Search db, insert if file not already in db
-                meta = getmetadata_mutagen(file)
-                filesize = os.path.getsize(file)
-                db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
-            run_counter += 1
-    cnx.close() # TODO use WITH
+    with cnx as connector:
+        for file in mp3list_temp:
+            if not shutdown_event.is_set():
+                file = os.path.realpath(file)
+                file = file.replace('\\', '/')
+                filehash = get_hash(file)
+                # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
+                cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
+#                connector.commit()
+                data = cursor.fetchone()
+                if data is None:  # Search db, insert if file not already in db
+                    meta = getmetadata_mutagen(file)
+                    filesize = os.path.getsize(file)
+                    db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
+                run_counter += 1
+    #cnx.close() # TODO use WITH
 
 def grab_files(directory):
     for name in os.listdir(directory):
