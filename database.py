@@ -3,7 +3,7 @@ import configparser
 import os
 import hashlib
 
-def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
+def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
     """ insert data into database
     :param conn: connection
     :param filename: filename to insert
@@ -11,7 +11,6 @@ def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
     :param metadata object
     """
     # insert data into database
-    #cursor = conn.cursor()
     filename = os.path.realpath(filename)
     filename = filename.replace('\\', '/')
 
@@ -21,9 +20,6 @@ def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
     filehash = hashlib.md5(filehash)
     filehash = filehash.hexdigest()
 
-#    album = ''.join(metadata.tags["ALBUM"])
-#    title = ''.join(metadata.tags["TITLE"])
-#    artist = ''.join(metadata.tags["ARTIST"])
     tag_list = {'filehash':filehash, 'filename':filename, 'size': str(size)}
     try:
         cursor.execute('INSERT IGNORE INTO Files (filehash,filename,size) VALUES (%s, %s, %s)', (filehash,filename,size))
@@ -35,52 +31,34 @@ def db_insert_filename_taglib_cursor(conn, cursor, filename, size, metadata):
 
 
     # insert all found fields into DB
-    #print ("Filename: {} ".format(filename))
     create_column = False
     if metadata is None:
         metadata = {'filename':filename}
-
-    try:
-        for tag in metadata.tags:
-            tag_list[tag] = metadata.tags[tag]
+    index = 0
+    try: # populate a valid tag_list with all available metadata from file
+        for index, element in enumerate(metadata):
+            tag_list[element[0]] =  element[1]
+            index += 1
     except AttributeError as e:
         print ("meta tag read error {} in file {} ".format(e, filename))
 
     for field,tag_value in tag_list.items():
+        tag_value = ''.join(tag_value)
         try:
-            tag_value = ''.join(tag_value)
-        except:
-            pass
-        try:
-            result = cursor.execute('select * FROM %s' % (field))
-            # conn.commit()
-            create_column = True
-        except:
-            pass
-            #print ("select failed for {} ".format(field))
-        if create_column:
-           try:
-                cursor.execute('ALTER TABLE Files ADD %s varchar (255) ' % (field))
-                # conn.commit()
-           except:
-                #print ("Could not create {} ".format(field) )
-                pass
-        #sql_string ='INSERT INTO Files ( '  + field + ') VALUE ("' + tag_value + '") WHERE file_id = ' + str(last_row) # WHERE filehash='+filehash
-        # sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
-        #sql_string = 'UPDATE IGNORE Files SET  ' + field + ' = "' + tag_value + '" WHERE file_id = ' + str(last_row)  # WHERE filehash='+filehash
-        sql_string = "UPDATE IGNORE Files SET  %s = $s WHERE file_id = %s"
-        # print ("inserting from {} ---- {} ".format(filename, sql_string))
+            # exception, try to add column "field" to table
+            cursor.execute('ALTER TABLE Files ADD %s varchar (255) ' % (field))
+            create_column = False
+        except: pass
+
         last_row = int(last_row)
         try:
-            #cursor.execute(sql_string, (field, tag_value, last_row))
             cursor.execute("UPDATE IGNORE Files set {} = '{}' WHERE file_id = {}".format(field, tag_value, int(last_row)))            # conn.commit()
-            #conn.close()
         except Exception as e:
             pass
-            #print ("Error in UPDATE {} {}".format(e, sql_string))
 
         result = cursor.fetchone()
     return
+
 
 def create_new_db():
     """

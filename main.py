@@ -1,18 +1,15 @@
 # mp3 collection thing
-
-# from mediafile import MediaFile
 from pathlib import Path
 from database import *
 import configparser
-import taglib
 import time
-import fnmatch
 import threading
-
-# For use in signaling
-shutdown_event = threading.Event()
 import pymysql.cursors
 import pymysql
+from mutagen.mp3 import MP3
+from mutagen.easyid3 import EasyID3
+# For use in signaling
+shutdown_event = threading.Event()
 
 
 def getmetadata_taglib(mp3file):
@@ -30,6 +27,32 @@ def getmetadata_taglib(mp3file):
         print ("Error reading tag from {} ".format(mp3file))
         time.sleep(1)
     return None
+
+def getmetadata_mutagen(mp3file):
+    """
+    scan mp3 file with pytaglib
+    :param mp3file: full path of filename to scan
+    :return: metadata
+    """
+    # metadata = None
+    mp3file = os.path.realpath(mp3file)
+    try:
+        f = MP3(mp3file, ID3=EasyID3)
+        klist = []
+        metadata = []
+        for a, b in f.items():
+            klist.append(a)
+            # print (a,b)
+
+        for valid_tags in klist:
+            metadata.append((valid_tags, f.ID3.get(f, valid_tags)[0]))
+
+        return metadata
+    except OSError as e:
+        print ("Error reading tag from {} ".format(mp3file))
+        time.sleep(1)
+    return None
+
 
 def scanfolder_glob(folder):
     """
@@ -50,40 +73,26 @@ def get_hash(filename):
     return filehash
 
 def update_db(mp3list_temp, dbconfig):
-    # cnx = mysql.connector.connect(**dbconfig)
     cnx = pymysql.connect(**dbconfig)
     cnx.autocommit = True
-#    cursor = cnx.cursor(buffered=True)
-
-    numberofthreads = 4
-    threadlist = []
-    thread_id = 1
     cursor = cnx.cursor()
-    sql_search = ("SELECT * FROM Files WHERE Filename LIKE %s")
     run_counter = 1
-    max_files = len(mp3list_temp)
-    # mp3list_temp = iter(mp3list_temp)
 
     for file in mp3list_temp:
         if not shutdown_event.is_set():
-            #file = next(mp3list_temp)
             file = os.path.realpath(file)
             file = file.replace('\\', '/')
             filehash = get_hash(file)
-            #cursor.execute(sql_search, file)
             # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
             cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
             cnx.commit()
             data = cursor.fetchone()
             if data is None:  # Search db, insert if file not already in db
-                meta = getmetadata_taglib(file)
+                meta = getmetadata_mutagen(file)
                 filesize = os.path.getsize(file)
-                db_insert_filename_taglib_cursor(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
-            #else: print (file + " already in db")
+                db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
             run_counter += 1
-    cnx.close() # setja i with ... TODO
-
-
+    cnx.close() # TODO use WITH
 
 def grab_files(directory):
     for name in os.listdir(directory):
@@ -96,6 +105,7 @@ def grab_files(directory):
                 yield full_path
         #else:
             #print('Unidentified name %s. It could be a symbolic link' % full_path)
+
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
@@ -116,6 +126,9 @@ def split_seq(seq, p):
     return newseq
 
 if __name__ == "__main__":
+    threads = []
+    thread_id = 1
+    max_threads = 4
 
     start_time = time.time()
     start = time.clock()
@@ -137,8 +150,7 @@ if __name__ == "__main__":
         "charset":'utf8',
     }
 
-
-    # create_new_db()
+    create_new_db()
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
@@ -148,18 +160,12 @@ if __name__ == "__main__":
         filenumber += 1
         mp3list_temp.append(k)
 
-    # mp3list_temp = split_seq(mp3list_temp,4)
-    # print (mp3list_temp)
     slice_size = int (len(mp3list_temp) / 4)
     path_list_1 = mp3list_temp[0:slice_size]
     path_list_2 = mp3list_temp[slice_size:slice_size * 2 ]
     path_list_3 = mp3list_temp[slice_size * 2 : slice_size * 3]
     path_list_4 = mp3list_temp[slice_size * 3 : len(mp3list_temp)]
-    threads = []
-    thread_id = 1
-    max_threads = 4
 
-    # TODO split file list in to 4 parts and feed each part into a thread
     t1 = threading.Thread(target=update_db, args=(path_list_1, dbconfig))
     t1.start()
     threads.append(t1)
@@ -176,10 +182,6 @@ if __name__ == "__main__":
     t2.start()
     threads.append(t2)
 
-    # for x in range(max_threads):
-    #     t = threading.Thread(target=update_db, args=(mp3list_temp, dbconfig))
-    #     t.start()
-    #     threads.append(t)
     end = time.clock()
     try:
         for i in threads:
