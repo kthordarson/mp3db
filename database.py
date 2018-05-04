@@ -3,6 +3,8 @@ import configparser
 import os
 import hashlib
 import time
+import warnings
+
 
 def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
     """ insert data into database
@@ -128,7 +130,10 @@ def create_new_db():
         # print ("[line] ", full_line, "[/line]")
         with conn.cursor() as cur:
             try:
-                cur.execute(full_line)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    # Put here your query raising a warning
+                    cur.execute(full_line)
             except Exception as e:
                 print("Error with create new db {} ".format(e))
                 continue
