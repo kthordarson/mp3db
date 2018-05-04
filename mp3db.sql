@@ -74,20 +74,20 @@ CREATE TABLE IF NOT EXISTS `song` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
--- Dumping structure for view mp3db.test01
-DROP VIEW IF EXISTS `test01`;
+-- Dumping structure for view mp3db.song_view
+DROP VIEW IF EXISTS `song_view`;
 -- Creating temporary table to overcome VIEW dependency errors
-CREATE TABLE `test01` (
+CREATE TABLE `song_view` (
 	`song_id` INT(11) NOT NULL,
 	`name` TEXT NOT NULL COLLATE 'utf8_general_ci',
 	`Title` TEXT NULL COLLATE 'utf8_general_ci'
 ) ENGINE=MyISAM;
 
--- Dumping structure for view mp3db.test01
-DROP VIEW IF EXISTS `test01`;
+-- Dumping structure for view mp3db.song_view
+DROP VIEW IF EXISTS `song_view`;
 -- Removing temporary table and create final VIEW structure
-DROP TABLE IF EXISTS `test01`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `test01` AS select `song`.`song_id` AS `song_id`,`artist`.`Name` AS `name`,`song`.`Title` AS `Title` from (`artist` join `song`) where (`artist`.`artist_id` = `song`.`artist_id`);
+DROP TABLE IF EXISTS `song_view`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `song_view` AS select `song`.`song_id` AS `song_id`,`artist`.`Name` AS `name`,`song`.`Title` AS `Title` from (`artist` join `song`) where (`artist`.`artist_id` = `song`.`artist_id`);
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
