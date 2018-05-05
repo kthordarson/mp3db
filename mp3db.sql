@@ -21,11 +21,10 @@ USE `mp3db`;
 DROP TABLE IF EXISTS `album`;
 CREATE TABLE IF NOT EXISTS `album` (
   `album_id` int(11) NOT NULL AUTO_INCREMENT,
-  `Title` text,
-  `Artist` text,
+  `Title` VARCHAR(255) NULL DEFAULT '-',
+  `Artist` VARCHAR(255) NULL DEFAULT '-',
   PRIMARY KEY (`album_id`),
-  UNIQUE KEY `ID` (`album_id`),
-  KEY `album_id` (`album_id`)
+  UNIQUE KEY `ID` (`album_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
@@ -33,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `album` (
 DROP TABLE IF EXISTS `artist`;
 CREATE TABLE IF NOT EXISTS `artist` (
   `artist_id` int(11) NOT NULL AUTO_INCREMENT,
-  `Name` text NOT NULL,
+  `Name` VARCHAR(255) NULL DEFAULT '-',
   PRIMARY KEY (`artist_id`),
   UNIQUE KEY `Id` (`artist_id`),
   KEY `artist_id` (`artist_id`)
@@ -46,14 +45,13 @@ CREATE TABLE `files` (
 	`file_id` INT(11) NOT NULL AUTO_INCREMENT,
 	`size` INT(11) NOT NULL,
 	`Filename` VARCHAR(255) NOT NULL,
-	`Album` VARCHAR(255) NULL DEFAULT NULL,
-	`Artist` VARCHAR(255) NULL DEFAULT NULL,
-	`Title` VARCHAR(255) NULL DEFAULT NULL,
+	`Album` VARCHAR(255) NULL DEFAULT '-',
+	`Artist` VARCHAR(255) NULL DEFAULT '-',
+	`Title` VARCHAR(255) NULL DEFAULT '-',
 	`filehash` VARCHAR(255) NOT NULL,
 	PRIMARY KEY (`file_id`),
-	UNIQUE INDEX `Id` (`file_id`),
 	UNIQUE INDEX `filehash` (`filehash`),
-	INDEX `file_id` (`file_id`)
+	UNIQUE INDEX `file_id` (`file_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
@@ -62,15 +60,12 @@ CREATE TABLE `files` (
 DROP TABLE IF EXISTS `song`;
 CREATE TABLE IF NOT EXISTS `song` (
   `song_id` int(11) NOT NULL AUTO_INCREMENT,
-  `Title` text,
+  `Title` VARCHAR(255) NULL DEFAULT '-',
   `artist_id` int(11) DEFAULT NULL,
   `album_id` int(11) DEFAULT NULL,
-  `file_id` text NOT NULL,
+  `file_id` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`song_id`),
-  UNIQUE KEY `song_id` (`song_id`),
-  KEY `song_id_2` (`song_id`),
-  KEY `artist_id` (`artist_id`),
-  KEY `album_id` (`album_id`)
+  UNIQUE KEY `song_id` (`song_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Data exporting was unselected.
@@ -79,8 +74,8 @@ DROP VIEW IF EXISTS `song_view`;
 -- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `song_view` (
 	`song_id` INT(11) NOT NULL,
-	`name` TEXT NOT NULL COLLATE 'utf8_general_ci',
-	`Title` TEXT NULL COLLATE 'utf8_general_ci'
+	`name` VARCHAR(255) NOT NULL COLLATE 'utf8_general_ci',
+	`Title` VARCHAR(255) NULL COLLATE 'utf8_general_ci'
 ) ENGINE=MyISAM;
 
 -- Dumping structure for view mp3db.song_view

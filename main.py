@@ -77,7 +77,7 @@ def update_db(mp3list_temp, dbconfig):
                     filesize = os.path.getsize(file)
                     db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
                 run_counter += 1
-    # cnx.close() # TODO use WITH
+    cnx.close() # TODO use WITH
 
 if __name__ == "__main__":
     threads = []
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         "charset": 'utf8',
     }
 
-    # create_new_db()
+    create_new_db()
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
@@ -149,4 +149,4 @@ if __name__ == "__main__":
 
     # done scanning
     # populate tables
-#    populate_tables(dbconfig)
+    populate_tables(dbconfig)

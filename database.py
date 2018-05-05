@@ -46,37 +46,26 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
 
     for field, tag_value in tag_list.items():
         tag_value = ''.join(tag_value)
+#        print ("FIELD: {} TAG_VALUE: {} ".format(field,tag_value))
+        if (tag_value is None):
+            tag_value = ''
+        if (tag_value) ==  '(None)':
+            tag_value = ''
+        if (tag_value) ==  '(NULL)':
+            tag_value = ''
+
         try:
             # exception, try to add column "field" to table
-            cursor.execute('ALTER TABLE Files ADD %s varchar (255) ' % (field))
+            cursor.execute("ALTER TABLE Files ADD %s varchar (255) NULL DEFAULT ''" % (field))
         except:
             pass
 
         last_row = int(file_id)
-        try:
+        try: # add all new columns found in id3 tag ot our db
             cursor.execute("UPDATE IGNORE Files set {} = '{}' WHERE file_id = {}".format(field, tag_value, int(
                 last_row)))  # conn.commit()
         except Exception as e:
             pass
-    # cursor.execute('select album,artist,file_id,title from files ') # update other tables from file_id
-    cursor.execute('select album, artist, file_id, title from files WHERE file_id = {}'.format(file_id)) # update other tables from file_id
-    # print ("Working on {} ".format(filename))
-    escapes = ''.join([chr(char) for char in range(1, 32)])
-    for row in cursor.fetchall():
-        album, artist, file_id, title = row
-        # title = title.translate(None, escapes)
-        # cursor.execute('insert into album (album, artist) VALUES (%s,%s)',(row[0], row[1]))
-        # print ("INSERT INTO album (album, artist) VALUES '{}','{}'".format(album,artist))
-        cursor.execute("INSERT INTO album (title, artist) VALUES ('{}','{}')".format(album, artist))
-        album_id = cursor.lastrowid
-        cursor.execute("INSERT INTO artist (name) VALUES ('{}')".format(artist))
-        artist_id = cursor.lastrowid
-        sql_command = "INSERT INTO song (file_id, title, album_id, artist_id) VALUES (%s, %s, %s, %s )"
-        try:
-            #cursor.execute("INSERT INTO song (file_id, title, album_id, artist_id) VALUES ('{}','{}','{}','{}')".format(file_id, title,  album_id, artist_id))
-            cursor.execute(sql_command,(file_id, title,  album_id, artist_id))
-        except Exception as e:
-            print ("Error processing {} {}".format(filename,e))
     return
 
 
@@ -95,20 +84,56 @@ def populate_tables(dbconfig):
     #    cursor_table2.execute("INSERT INTO table2 VALUES (%s,%s,%s,%s,'%s')" % (
     #    part, min, max, unitPrice, now.strftime('%Y-%m-%d %H:%M:%S')))
     print ("Populating tables....")
-    cursor.execute('select album,artist,file_id,title from files ')
+    cursor.execute('select album,artist,file_id,title,filename from files ')
     for row in cursor.fetchall():
-        album, artist, file_id, title = row
+        album, artist, file_id, title,filename = row
+        if album is None: album =''
+        if artist is None: artist=''
+        if file_id is None: file_id=''
+        if title is None: title=filename
+        if title == ' ': title = filename
+
         # cursor.execute('insert into album (album, artist) VALUES (%s,%s)',(row[0], row[1]))
         # print ("INSERT INTO album (album, artist) VALUES '{}','{}'".format(album,artist))
-        cursor.execute("INSERT INTO album (title, artist) VALUES ('{}','{}')".format(album, artist))
-        album_id = cursor.lastrowid
-        cursor.execute("INSERT INTO artist (name) VALUES ('{}')".format(artist))
-        artist_id = cursor.lastrowid
-        cursor.execute(
-            "INSERT INTO song (file_id,title,album_id, artist_id) VALUES ('{}','{}','{}','{}')".format(file_id, title,
-                                                                                                       album_id,
-                                                                                                       artist_id))
-    cnx.commit()
+        #               SELECT album_id FROM album WHERE title='Basscadet EP' AND artist='Autechre'
+        # look for album/artist combo before instert.....
+        cursor.execute("SELECT album_id, title FROM album WHERE title='{}' AND artist='{}'".format(album,artist))
+        album_id = cursor.fetchone()
+        if album_id:
+            #album_id = cursor.fetchall()
+            print ("Album already in database ID: {} ALBUM: {} ARTIST {}".format(album_id, album, artist))
+        if album != '-':
+           # ALBUM
+            # insert album/artist combo into album table
+#            print("New album, inserting. ALBUM TITLE: {} ARTIST: {}".format(album, artist))
+            cursor.execute("INSERT INTO album (title, artist) VALUES ('{}','{}')".format(album, artist))
+            album_id = cursor.lastrowid
+            cnx.commit()
+
+        # ARTIST
+        cursor.execute("SELECT artist_id FROM artist WHERE name='{}'".format(artist))
+        artist_id = cursor.fetchone()
+        if (artist_id is None):
+            # artist_id = cursor.fetchall()
+            # insert album/artist combo into artist table
+#            print("New artist, inserting. ARTIST NAME: {} ".format(artist))
+            cursor.execute("INSERT INTO artist (name) VALUES ('{}')".format(artist))
+            artist_id = cursor.lastrowid
+            cnx.commit()
+        else: # not artist_id:
+            print("Artist already in database ID: {} ARTIST {}".format(artist_id, artist))
+
+            #cursor.execute("SELECT album_id FROM album WHERE ")
+#            if album_id and artist_id:
+            # find album_id and artist_id for song in file table for each song.
+            # avoid duplicate entries in song table
+        print ("Insering into songs: {} {} {} {} ".format(file_id, title, album_id, artist_id))
+        try:
+            cursor.execute("INSERT INTO song (file_id,title,album_id, artist_id) VALUES ('{}','{}','{}','{}')".format(file_id, title,album_id,artist_id))
+        except Exception as e:
+            print("ERROR insering into songs: {} {} {} {} {}".format(file_id, title, album_id, artist_id, e))
+            pass
+        cnx.commit()
     end_time = time.time()
     print('Done populating elapsed time {} '.format((end_time - start_time)))
 
@@ -127,7 +152,7 @@ def create_new_db():
     db_user = config['DEFAULT']['user']
     db_pass = config['DEFAULT']['pass']
     db_database = config['DEFAULT']['db_database']
-    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_database, charset='utf8')
+    conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, charset='utf8')
     # conn.cursor().set_character_set('utf8')
     conn.set_charset('utf8')
     conn.cursor().execute('SET NAMES utf8;')
