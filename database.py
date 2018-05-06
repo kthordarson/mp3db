@@ -10,7 +10,7 @@ import itertools
 import pymysql
 
 def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
-    print ("- {}".format(filename))
+    print ("Scanning file {}".format(filename))
     """ insert data into database
     :param conn: connection
     :param filename: filename to insert
@@ -28,12 +28,21 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
     filehash = filehash.hexdigest()
 
    # tag_list = {'filehash': filehash, 'filename': filename, 'size': str(size)}
-    cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+    try:
+        cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+        last_fileid = cursor.lastrowid
+    except pymysql.err.InternalError as e:
+        if e.args[0] == 1213: # DEADLOCK, try again after sleep
+            print ("DEADLOCK {} ".format(e))
+            time.sleep(0.1)
+            cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+            last_fileid = cursor.lastrowid
+
     file_id = cursor.lastrowid
     conn.commit()
     cursor.execute("INSERT INTO Song (file_id, filename) VALUES (%s, %s)",(file_id,filename))
     song_id = cursor.lastrowid
-
+    conn.commit()
     tag_list = {}
     # insert all found fields into DB
     if metadata is None:
@@ -48,30 +57,56 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
 
     for field, tag_value in tag_list.items():
         tag_value = ''.join(tag_value)
-
         try:
             # exception, try to add column "field" to table
             #cursor.execute("ALTER TABLE Files ADD %s varchar (255) NULL DEFAULT ''" % (field))
             cursor.execute("ALTER TABLE Files ADD {} VARCHAR (255) NULL DEFAULT ''".format(field))
-            # cnx.commit()
-        except Exception as e:
-            # print ("Error in alter table column: Filename: {} Field: {} Tag_value: {} ERROR {}".format(filename, field, tag_value, e))
-            pass
+            conn.commit()
+        except pymysql.err.InternalError as e:
+            if e.args[0] == 1060: pass # error 1060 is duplicate warning
 
-        last_row = int(file_id)
         try: # add all new columns found in id3 tag ot our db
             sql_command = """UPDATE IGNORE files SET {} = %s WHERE file_id = %s""".format(field)
             cursor.execute(sql_command, (tag_value,file_id,))
-        except Exception as e:
-            #print ("Error UPDATE file DB: {} {}".format(filename, e))
+            conn.commit()
+        except TypeError as e:
+            print ("Error UPDATE file DB: {} {}".format(filename, e))
             pass
+
+
+
 
         try:
-            cursor.execute("ALTER TABLE Song ADD {} VARCHAR (255)".format(field))
+            cursor.execute("ALTER TABLE Song ADD {} VARCHAR (255) DEFAULT ''".format(field))
+            conn.commit()
+        except pymysql.err.InternalError as e:
+            if e.args[0] == 1060: pass # error 1060 is duplicate warning
+
+        # Do this in populate_tables
+        try: # add all new columns found in id3 tag ot our db
+            sql_command = """UPDATE IGNORE song SET {} = %s WHERE file_id = %s""".format(field)
+            cursor.execute(sql_command, (tag_value,file_id,))
+            conn.commit()
         except Exception as e:
-            # print ("Error in ALTER table song FILE {} FIELD {} ERROR {} ".format(filename, field, e))
+            print ("Error UPDATE file DB: {} {}".format(filename, e))
             pass
 
+    # check for empty titles, set to filename if empty
+    sql_command = """SELECT file_id, title from files WHERE file_id = %s""" % last_fileid
+    try:
+        cursor.execute(sql_command)
+        result = cursor.fetchone
+        # print (result)
+    except:
+        print("Filename has no title set {} ".format(filename))
+        try:
+            sql_command = """ALTER TABLE file ADD title  VARCHAR (255) DEFAULT"""
+            cursor.execute(sql_command)
+        except: pass
+
+        sql_command = """UPDATE IGNORE file SET title = %s WERE file_id = %s""" % (filename,last_fileid)
+        cursor.execute(sql_command)
+        pass
     return
 
 
@@ -82,11 +117,11 @@ def populate_tables2(dbconfig):
 
 
     with connection.cursor() as cursor:
-        # lets populate album, artist and albumartist tables from files
-        sql_command = "SELECT album,artist,albumartist, file_id FROM files"
+        # lets populate song, album, artist and albumartist tables from files
+        sql_command = "SELECT * FROM files"
         cursor.execute(sql_command)
-        result = cursor.fetchall()
-        for row in result:
+        # result = cursor.fetchall()
+        for row in cursor.fetchall():
             artist = row.get('artist')  ### look in []
             albumtitle = row.get('album')
             albumartist = row.get('albumartist')
@@ -101,7 +136,7 @@ def populate_tables2(dbconfig):
                 #sql_command = """UPDATE IGNORE album  SET ({},{},{}) VALUES ('{}','{}','{}') """.format(album,artist,albumartist)
                 sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" % (albumtitle,artist,albumartist)
                 try:
-                    print ("Running: {} ".format(sql_command))
+                    # print ("Running: {} ".format(sql_command))
                     cursor.execute(sql_command)
                     connection.commit()
                 except Exception as e:
@@ -114,7 +149,7 @@ def populate_tables2(dbconfig):
             if len(result) == 0:
                 sql_command = """INSERT INTO artist (name) VALUES ("%s")""" % (artist)
                 try:
-                    print ("Running: {} ".format(sql_command))
+                    # print ("Running: {} ".format(sql_command))
                     cursor.execute(sql_command)
                     connection.commit()
                 except Exception as e:
@@ -128,13 +163,24 @@ def populate_tables2(dbconfig):
             if len(result) == 0:
                 sql_command = """INSERT INTO albumartist (name) VALUES ("%s")""" % (albumartist)
                 try:
-                    print("Running: {} ".format(sql_command))
+                    # print("Running: {} ".format(sql_command))
                     cursor.execute(sql_command)
                     connection.commit()
                 except Exception as e:
                     print("INSERT INTO albumartist error. ".format(e))
-            
-            
+
+            # # song populate
+            # for k in row:
+            #     field = k
+            #     value = row.get(k)
+            #     # print ("TESTING field {} value {}".format(field, value))
+            #     # sql_command = """UPDATE IGNORE song SET %s = %s WHERE file_id = %s""" & (field,value,file_id)
+            #     sql_command = """UPDATE IGNORE song SET {} """.format(field)
+            #     sql_command = sql_command + """ %s WHERE file_id = %s """ % (value,file_id)
+            #     # sql_command =
+            #     print (sql_command)
+            #     cursor.execute(sql_command,[value,file_id])
+            #
 def create_new_db():
     """
     this will delete the database and recreate all tables
