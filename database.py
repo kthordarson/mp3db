@@ -78,36 +78,60 @@ def populate_tables3(dbconfig):
     connection = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     connection.autocommit = True
     with connection.cursor() as cursor:
+
+        # get all unique albums
         sql_command = """SELECT DISTINCT album, artist, albumartist FROM files"""
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             album = row.get('album')
             artist = row.get('artist')
             albumartist = row.get('albumartist')
-            #sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES (%s, %s, %s) """
-            sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("{}","{}","{}") """.format(album,artist,albumartist)
-            print ("Running {} ".format(sql_command))
-            cursor.execute(sql_command)
+            sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES (%s, %s, %s) """
+            #sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("{}","{}","{}") """.format(album,artist,albumartist)
+            # print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command, [album, artist, albumartist])
             connection.commit()
 
+        # get all unique artist
         sql_command = """SELECT DISTINCT artist FROM files"""
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             artist = row.get('artist')
             sql_command = """INSERT INTO artist(name) VALUES ("{}") """.format(artist)
-            print ("Running {} ".format(sql_command))
+            # print ("Running {} ".format(sql_command))
             cursor.execute(sql_command)
             connection.commit()
 
+        # get all unique albumartist
         sql_command = """SELECT DISTINCT albumartist FROM files"""
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             albumartist = row.get('albumartist')
             sql_command = """INSERT INTO albumartist(name) VALUES ("{}") """.format(albumartist)
-            print ("Running {} ".format(sql_command))
+            # print ("Running {} ".format(sql_command))
             cursor.execute(sql_command)
             connection.commit()
 
+        # get all unique songs
+        sql_command = """SELECT file_id, filename FROM files"""
+        cursor.execute(sql_command)
+        for row in cursor.fetchall():
+            file_id = row.get('file_id')
+            album = row.get('album')
+            artist = row.get('artist')
+            albumartist = row.get('albumartist')
+            title = row.get('title')
+            filename = row.get('filename')
+            sql_command = """INSERT INTO song (file_id, filename) VALUES ("{}","{}") """.format(file_id, filename)
+            # print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command)
+            connection.commit()
+
+            # populate song table
+#            sql_command = """SELECT file_id, album, artist, albumartist, title FROM files where filename = "{}" """.format(filename)
+#            cursor.execute(sql_command)
+#            for row in cursor.fetchall():
+#                print ("Song populate from: {} \n Result {} ".format(filename, row))
 
 def populate_tables2(dbconfig):
     # GET ALBUM / ALBUMARTIST / ARTIST TABLES
