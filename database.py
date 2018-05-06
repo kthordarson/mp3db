@@ -73,6 +73,41 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
             pass
     return
 
+def populate_tables3(dbconfig):
+    # GET ALBUM / ALBUMARTIST / ARTIST TABLES
+    connection = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
+    connection.autocommit = True
+    with connection.cursor() as cursor:
+        sql_command = """SELECT DISTINCT album, artist, albumartist FROM files"""
+        cursor.execute(sql_command)
+        for row in cursor.fetchall():
+            album = row.get('album')
+            artist = row.get('artist')
+            albumartist = row.get('albumartist')
+            #sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES (%s, %s, %s) """
+            sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("{}","{}","{}") """.format(album,artist,albumartist)
+            print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command)
+            connection.commit()
+
+        sql_command = """SELECT DISTINCT artist FROM files"""
+        cursor.execute(sql_command)
+        for row in cursor.fetchall():
+            artist = row.get('artist')
+            sql_command = """INSERT INTO artist(name) VALUES ("{}") """.format(artist)
+            print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command)
+            connection.commit()
+
+        sql_command = """SELECT DISTINCT albumartist FROM files"""
+        cursor.execute(sql_command)
+        for row in cursor.fetchall():
+            albumartist = row.get('albumartist')
+            sql_command = """INSERT INTO albumartist(name) VALUES ("{}") """.format(albumartist)
+            print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command)
+            connection.commit()
+
 
 def populate_tables2(dbconfig):
     # GET ALBUM / ALBUMARTIST / ARTIST TABLES
@@ -97,9 +132,7 @@ def populate_tables2(dbconfig):
             cursor.execute(sql_command, [artist,albumartist,albumtitle])
             result = cursor.fetchall()
             if len(result) == 0:
-                # sql_command = """UPDATE IGNORE album  SET ({},{},{}) VALUES ('{}','{}','{}') """.format(album,artist,albumartist)
-                # sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" % (albumtitle,artist,albumartist)
-                sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" # % (albumtitle,artist,albumartist)
+                sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES (%s,%s,%s)""" # % (albumtitle,artist,albumartist)
                 try:
                     # print ("Running: {} ".format(sql_command))
                     cursor.execute(sql_command,[albumtitle,artist,albumartist])
