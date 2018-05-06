@@ -32,22 +32,22 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
         cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
         last_fileid = cursor.lastrowid
     except pymysql.err.InternalError as e:
-        if e.args[0] == 1213: # DEADLOCK, try again after sleep
+        if e.args[0] == 1213:                   # DEADLOCK, try again after sleep
             print ("DEADLOCK {} ".format(e))
-            time.sleep(0.1)
+            time.sleep(0.1)                     # Wait and retry
             cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
             last_fileid = cursor.lastrowid
 
     file_id = cursor.lastrowid
     conn.commit()
-    cursor.execute("INSERT INTO Song (file_id, filename) VALUES (%s, %s)",(file_id,filename))
-    song_id = cursor.lastrowid
-    conn.commit()
     tag_list = {}
+
     # insert all found fields into DB
     if metadata is None:
         metadata = {'filename': filename}
+        metadata = {'title': os.path.basename(filename)}
     index = 0
+
     try:  # populate a valid tag_list with all available metadata from file
         for index, element in enumerate(metadata):
             tag_list[element[0]] = element[1]
@@ -64,7 +64,6 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
             conn.commit()
         except pymysql.err.InternalError as e:
             if e.args[0] == 1060: pass # error 1060 is duplicate warning
-
         try: # add all new columns found in id3 tag ot our db
             sql_command = """UPDATE IGNORE files SET {} = %s WHERE file_id = %s""".format(field)
             cursor.execute(sql_command, (tag_value,file_id,))
@@ -72,41 +71,6 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
         except TypeError as e:
             print ("Error UPDATE file DB: {} {}".format(filename, e))
             pass
-
-
-
-
-        try:
-            cursor.execute("ALTER TABLE Song ADD {} VARCHAR (255) DEFAULT ''".format(field))
-            conn.commit()
-        except pymysql.err.InternalError as e:
-            if e.args[0] == 1060: pass # error 1060 is duplicate warning
-
-        # Do this in populate_tables
-        try: # add all new columns found in id3 tag ot our db
-            sql_command = """UPDATE IGNORE song SET {} = %s WHERE file_id = %s""".format(field)
-            cursor.execute(sql_command, (tag_value,file_id,))
-            conn.commit()
-        except Exception as e:
-            print ("Error UPDATE file DB: {} {}".format(filename, e))
-            pass
-
-    # check for empty titles, set to filename if empty
-    sql_command = """SELECT file_id, title from files WHERE file_id = %s""" % last_fileid
-    try:
-        cursor.execute(sql_command)
-        result = cursor.fetchone
-        # print (result)
-    except:
-        print("Filename has no title set {} ".format(filename))
-        try:
-            sql_command = """ALTER TABLE file ADD title  VARCHAR (255) DEFAULT"""
-            cursor.execute(sql_command)
-        except: pass
-
-        sql_command = """UPDATE IGNORE file SET title = %s WERE file_id = %s""" % (filename,last_fileid)
-        cursor.execute(sql_command)
-        pass
     return
 
 
@@ -133,24 +97,26 @@ def populate_tables2(dbconfig):
             cursor.execute(sql_command, [artist,albumartist,albumtitle])
             result = cursor.fetchall()
             if len(result) == 0:
-                #sql_command = """UPDATE IGNORE album  SET ({},{},{}) VALUES ('{}','{}','{}') """.format(album,artist,albumartist)
-                sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" % (albumtitle,artist,albumartist)
+                # sql_command = """UPDATE IGNORE album  SET ({},{},{}) VALUES ('{}','{}','{}') """.format(album,artist,albumartist)
+                # sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" % (albumtitle,artist,albumartist)
+                sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES ("%s","%s","%s")""" # % (albumtitle,artist,albumartist)
                 try:
                     # print ("Running: {} ".format(sql_command))
-                    cursor.execute(sql_command)
+                    cursor.execute(sql_command,[albumtitle,artist,albumartist])
                     connection.commit()
-                except Exception as e:
-                    print ("INSERT INTO album error. ".format(e))
+                except pymysql.ProgrammingError as e:
+                    if e.args[0] == 1064:
+                        print ("INSERT INTO album error. SQL: {} {} ".format(sql_command,e))
 
             # artist populate
-            sql_command = "SELECT artist_id FROM artist WHERE name = %s"
+            sql_command = """SELECT artist_id FROM artist WHERE name = %s"""
             cursor.execute(sql_command, [artist])
             result = cursor.fetchall()
             if len(result) == 0:
-                sql_command = """INSERT INTO artist (name) VALUES ("%s")""" % (artist)
+                sql_command = """INSERT INTO artist (name) VALUES (%s)"""
                 try:
                     # print ("Running: {} ".format(sql_command))
-                    cursor.execute(sql_command)
+                    cursor.execute(sql_command,[artist])
                     connection.commit()
                 except Exception as e:
                     print ("INSERT INTO artist error. ".format(e))
