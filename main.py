@@ -70,8 +70,8 @@ def update_db(mp3list_temp, dbconfig):
                 filehash = get_hash(file)
                 # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
                 cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
-                #                connector.commit()
                 data = cursor.fetchone()
+                #                connector.commit()
                 if data is None:  # Search db, insert if file not already in db
                     meta = getmetadata_mutagen(file)
                     filesize = os.path.getsize(file)
@@ -139,14 +139,14 @@ if __name__ == "__main__":
     end = time.clock()
     try:
         for i in threads:
-            i.join(timeout=1.0)
+            i.join(timeout=1)
     except (KeyboardInterrupt, SystemExit):
         print("Caught Ctrl-C. Cleaning up. Exiting.")
         shutdown_event.set()
     end_time = time.time()
 
     print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
-
+    populate_tables2(dbconfig)
     # done scanning
     # populate tables
-    populate_tables(dbconfig)
+ #   populate_tables(dbconfig)
