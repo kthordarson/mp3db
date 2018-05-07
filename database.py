@@ -44,10 +44,8 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
 
     # insert all found fields into DB
     if metadata is None:
-        metadata = {'filename': filename}
-        metadata = {'title': os.path.basename(filename)}
-    index = 0
-
+        metadata = {'filename': filename, 'title': os.path.basename(filename)}
+        #metadata = {'title': os.path.basename(filename)}
     try:  # populate a valid tag_list with all available metadata from file
         for index, element in enumerate(metadata):
             tag_list[element[0]] = element[1]
@@ -97,9 +95,9 @@ def populate_tables3(dbconfig):
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             artist = row.get('artist')
-            sql_command = """INSERT INTO artist(name) VALUES ("{}") """.format(artist)
+            sql_command = """INSERT INTO artist(name) VALUES (%s) """ #.format(artist)
             # print ("Running {} ".format(sql_command))
-            cursor.execute(sql_command)
+            cursor.execute(sql_command,[artist])
             connection.commit()
 
         # get all unique albumartist
@@ -113,7 +111,7 @@ def populate_tables3(dbconfig):
             connection.commit()
 
         # get all unique songs
-        sql_command = """SELECT file_id, filename FROM files"""
+        sql_command = """SELECT file_id, filename, title FROM files"""
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             file_id = row.get('file_id')
@@ -122,7 +120,7 @@ def populate_tables3(dbconfig):
             albumartist = row.get('albumartist')
             title = row.get('title')
             filename = row.get('filename')
-            sql_command = """INSERT INTO song (file_id, filename) VALUES ("{}","{}") """.format(file_id, filename)
+            sql_command = """INSERT INTO song (file_id, filename, title) VALUES ("{}","{}","{}") """.format(file_id, filename,title)
             # print ("Running {} ".format(sql_command))
             cursor.execute(sql_command)
             connection.commit()

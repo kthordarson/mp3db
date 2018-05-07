@@ -146,7 +146,7 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
-    populate_tables3(dbconfig)
+    # populate_tables3(dbconfig)
     # done scanning
     # populate tables
  #   populate_tables(dbconfig)
