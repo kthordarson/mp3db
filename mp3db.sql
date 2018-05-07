@@ -13,8 +13,6 @@
 
 
 -- Dumping database structure for mp3db
-DROP DATABASE IF EXISTS `mp3db`;
-CREATE DATABASE IF NOT EXISTS `mp3db` /*!40100 DEFAULT CHARACTER SET utf8 */;
 USE `mp3db`;
 
 -- Dumping structure for table mp3db.album
@@ -70,22 +68,9 @@ CREATE TABLE IF NOT EXISTS `song` (
   UNIQUE KEY `song_id` (`song_id`),
   `file_id` INT(11) NULL DEFAULT NULL,
   `filename` VARCHAR(255) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
   `album_id` INT(11) NULL DEFAULT NULL,
   `artist_id` INT(11) NULL DEFAULT NULL,
   `albumartist_id` INT(11) NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- Data exporting was unselected.
--- Dumping structure for view mp3db.song_view
-DROP VIEW IF EXISTS `song_view`;
--- Creating temporary table to overcome VIEW dependency errors
-CREATE TABLE `song_view` (
-	`song_id` INT(11) NOT NULL,
-	`name` VARCHAR(255) NOT NULL COLLATE 'utf8_general_ci',
-	`Title` VARCHAR(255) NULL COLLATE 'utf8_general_ci'
-) ENGINE=MyISAM;
-
-
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

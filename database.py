@@ -29,13 +29,16 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
 
    # tag_list = {'filehash': filehash, 'filename': filename, 'size': str(size)}
     try:
-        cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+        # cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+        sql_command = "INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)"
+        cursor.execute(sql_command,[filename, size, filehash])
         last_fileid = cursor.lastrowid
     except pymysql.err.InternalError as e:
         if e.args[0] == 1213:                   # DEADLOCK, try again after sleep
             print ("DEADLOCK {} ".format(e))
             time.sleep(0.1)                     # Wait and retry
-            cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
+            sql_command = "INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)"
+            cursor.execute(sql_command, [filename, size, filehash])
             last_fileid = cursor.lastrowid
 
     file_id = cursor.lastrowid
@@ -60,7 +63,9 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata):
         try:
             # exception, try to add column "field" to table
             #cursor.execute("ALTER TABLE Files ADD %s varchar (255) NULL DEFAULT ''" % (field))
-            cursor.execute("ALTER TABLE Files ADD {} VARCHAR (255) NULL DEFAULT ''".format(field))
+            # sql_command = "ALTER TABLE Files ADD %s VARCHAR (255) NULL DEFAULT ''"
+            sql_command= "ALTER TABLE Files ADD {} VARCHAR (255) NULL DEFAULT ''".format(field)
+            cursor.execute(sql_command)
             conn.commit()
         except pymysql.err.InternalError as e:
             if e.args[0] == 1060: pass # error 1060 is duplicate warning
@@ -97,9 +102,9 @@ def populate_tables3(dbconfig):
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             artist = row.get('artist')
-            sql_command = """INSERT INTO artist(name) VALUES ("{}") """.format(artist)
+            sql_command = """INSERT INTO artist(name) VALUES (%s) """ # .format(artist)
             # print ("Running {} ".format(sql_command))
-            cursor.execute(sql_command)
+            cursor.execute(sql_command,[artist])
             connection.commit()
 
         # get all unique albumartist
@@ -107,13 +112,14 @@ def populate_tables3(dbconfig):
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             albumartist = row.get('albumartist')
-            sql_command = """INSERT INTO albumartist(name) VALUES ("{}") """.format(albumartist)
+            # sql_command = """INSERT INTO albumartist(name) VALUES ("{}") """.format(albumartist)
+            sql_command = """INSERT INTO albumartist(name) VALUES (%s) """
             # print ("Running {} ".format(sql_command))
-            cursor.execute(sql_command)
+            cursor.execute(sql_command,[albumartist])
             connection.commit()
 
         # get all unique songs
-        sql_command = """SELECT file_id, filename FROM files"""
+        sql_command = """SELECT file_id, filename,album,artist,albumartist,title FROM files"""
         cursor.execute(sql_command)
         for row in cursor.fetchall():
             file_id = row.get('file_id')
@@ -122,94 +128,43 @@ def populate_tables3(dbconfig):
             albumartist = row.get('albumartist')
             title = row.get('title')
             filename = row.get('filename')
-            sql_command = """INSERT INTO song (file_id, filename) VALUES ("{}","{}") """.format(file_id, filename)
-            # print ("Running {} ".format(sql_command))
-            cursor.execute(sql_command)
-            connection.commit()
+            
+            sql_command = """SELECT album_id FROM album where (artist = %s OR albumartist = %s ) AND albumtitle= %s """ #.format(artist,albumartist,album)
+            cursor.execute(sql_command,[album,albumartist,album])
+            for k in cursor.fetchall():
+                album_id = k.get('album_id')
+                
+            sql_command = """SELECT artist_id FROM artist where (name = %s) """ #.format(artist,albumartist,album)
+            cursor.execute(sql_command,[artist])
+            for k in cursor.fetchall():
+                artist_id = k.get('artist_id')
+                
+            sql_command = """SELECT albumartist_id FROM albumartist where (name = %s) """ #.format(albumartist,albumalbumartist,album)
+            cursor.execute(sql_command,[albumartist])
+            for k in cursor.fetchall():
+                albumartist_id = k.get('albumartist_id')
 
+            # sql_command = """INSERT INTO song (file_id, filename) VALUES ("{}","{}") """.format(file_id, filename)
+            sql_command = """INSERT INTO song (file_id, filename,title, album_id, artist_id, albumartist_id) VALUES (%s, %s, %s, %s, %s, %s) """ #.format(file_id, filename)
+            # print ("Running {} ".format(sql_command))
+            cursor.execute(sql_command,[file_id, filename, title, album_id, artist_id, albumartist_id])
+            connection.commit()
+#            sql_command = "SELECT album, artist, albumartist, title FROM `files` WHERE file_id = %s"
+#            cursor.execute(sql_command, [file_id])
             # populate song table
 #            sql_command = """SELECT file_id, album, artist, albumartist, title FROM files where filename = "{}" """.format(filename)
 #            cursor.execute(sql_command)
 #            for row in cursor.fetchall():
 #                print ("Song populate from: {} \n Result {} ".format(filename, row))
 
-def populate_tables2(dbconfig):
-    # GET ALBUM / ALBUMARTIST / ARTIST TABLES
-    connection = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
-    connection.autocommit = True
-
-
-    with connection.cursor() as cursor:
-        # lets populate song, album, artist and albumartist tables from files
-        sql_command = "SELECT * FROM files"
-        cursor.execute(sql_command)
-        # result = cursor.fetchall()
-        for row in cursor.fetchall():
-            artist = row.get('artist')  ### look in []
-            albumtitle = row.get('album')
-            albumartist = row.get('albumartist')
-            title = row.get('title')
-            file_id = row.get('file_id')
-
-            # album populate
-            sql_command = "SELECT album_id FROM album WHERE (Artist = %s OR albumartist = %s) AND albumtitle = %s"
-            cursor.execute(sql_command, [artist,albumartist,albumtitle])
-            result = cursor.fetchall()
-            if len(result) == 0:
-                sql_command = """INSERT INTO album (albumtitle,artist,albumartist) VALUES (%s,%s,%s)""" # % (albumtitle,artist,albumartist)
-                try:
-                    # print ("Running: {} ".format(sql_command))
-                    cursor.execute(sql_command,[albumtitle,artist,albumartist])
-                    connection.commit()
-                except pymysql.ProgrammingError as e:
-                    if e.args[0] == 1064:
-                        print ("INSERT INTO album error. SQL: {} {} ".format(sql_command,e))
-
-            # artist populate
-            sql_command = """SELECT artist_id FROM artist WHERE name = %s"""
-            cursor.execute(sql_command, [artist])
-            result = cursor.fetchall()
-            if len(result) == 0:
-                sql_command = """INSERT INTO artist (name) VALUES (%s)"""
-                try:
-                    # print ("Running: {} ".format(sql_command))
-                    cursor.execute(sql_command,[artist])
-                    connection.commit()
-                except Exception as e:
-                    print ("INSERT INTO artist error. ".format(e))
-
-
-            # albumartist populate
-            sql_command = "SELECT albumartist_id FROM albumartist WHERE name = %s"
-            cursor.execute(sql_command, [albumartist])
-            result = cursor.fetchall()
-            if len(result) == 0:
-                sql_command = """INSERT INTO albumartist (name) VALUES ("%s")""" % (albumartist)
-                try:
-                    # print("Running: {} ".format(sql_command))
-                    cursor.execute(sql_command)
-                    connection.commit()
-                except Exception as e:
-                    print("INSERT INTO albumartist error. ".format(e))
-
-            # # song populate
-            # for k in row:
-            #     field = k
-            #     value = row.get(k)
-            #     # print ("TESTING field {} value {}".format(field, value))
-            #     # sql_command = """UPDATE IGNORE song SET %s = %s WHERE file_id = %s""" & (field,value,file_id)
-            #     sql_command = """UPDATE IGNORE song SET {} """.format(field)
-            #     sql_command = sql_command + """ %s WHERE file_id = %s """ % (value,file_id)
-            #     # sql_command =
-            #     print (sql_command)
-            #     cursor.execute(sql_command,[value,file_id])
-            #
-def create_new_db():
+def create_new_db(dbconfig):
     """
     this will delete the database and recreate all tables
     :return:
     """
     print("Create new DB..")
+    connection = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
+    connection.autocommit = True
     config = configparser.ConfigParser()
     config.sections()
     config.read('config.ini')
