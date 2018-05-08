@@ -59,26 +59,24 @@ def get_hash(filename):
 
 def update_db(mp3list_temp, dbconfig):
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
-    # cnx = pymysql.connect(**dbconfig)
     cnx.autocommit = True
-    cursor = cnx.cursor()
-    run_counter = 1
-    with cnx as connector:
-        for file in mp3list_temp:
+    # cursor = cnx.cursor()
+    print ("Starting file scan....")
+    for file in mp3list_temp:
+        file = os.path.realpath(file)
+        file = file.replace('\\', '/')
+        filehash = get_hash(file)
+        with cnx.cursor() as cursor:
             if not shutdown_event.is_set():
-                file = os.path.realpath(file)
-                file = file.replace('\\', '/')
-                filehash = get_hash(file)
                 # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
-                cursor.execute("SELECT * FROM Files WHERE filehash = %s ", (filehash,))
+                cursor.execute("SELECT DISTINCT filehash FROM Files WHERE filehash = %s ", (filehash,))
                 data = cursor.fetchone()
                 #                connector.commit()
                 if data is None:  # Search db, insert if file not already in db
                     meta = getmetadata_mutagen(file)
                     filesize = os.path.getsize(file)
-                    db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
-                    db_process_filename(cnx,cursor=cursor,filehash=filehash)
-                run_counter += 1
+                    db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta, filehash=filehash)
+                    db_process_filename2(cnx, cursor=cursor, filehash=filehash)
     cnx.close() #
 
 if __name__ == "__main__":
@@ -131,23 +129,23 @@ if __name__ == "__main__":
     t2.start()
     threads.append(t2)
 
-    t2 = threading.Thread(target=update_db, args=(path_list_3, dbconfig))
-    t2.start()
-    threads.append(t2)
+    t3 = threading.Thread(target=update_db, args=(path_list_3, dbconfig))
+    t3.start()
+    threads.append(t3)
 
-    t2 = threading.Thread(target=update_db, args=(path_list_4, dbconfig))
-    t2.start()
-    threads.append(t2)
+    t3 = threading.Thread(target=update_db, args=(path_list_4, dbconfig))
+    t3.start()
+    threads.append(t3)
 
     end = time.clock()
     try:
         for i in threads:
-            i.join(timeout=1)
+            i.join(timeout=10)
     except (KeyboardInterrupt, SystemExit):
         print("Caught Ctrl-C. Cleaning up. Exiting.")
         shutdown_event.set()
     end_time = time.time()
-
+    #db_process_filename(cnx, cursor=cursor, filehash=filehash)
     print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
     # populate_tables3(dbconfig)
     # done scanning
