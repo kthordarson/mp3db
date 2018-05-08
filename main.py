@@ -58,7 +58,8 @@ def get_hash(filename):
 
 
 def update_db(mp3list_temp, dbconfig):
-    cnx = pymysql.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
+    # cnx = pymysql.connect(**dbconfig)
     cnx.autocommit = True
     cursor = cnx.cursor()
     run_counter = 1
@@ -76,8 +77,9 @@ def update_db(mp3list_temp, dbconfig):
                     meta = getmetadata_mutagen(file)
                     filesize = os.path.getsize(file)
                     db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta)
+                    db_process_filename(cnx,cursor=cursor,filehash=filehash)
                 run_counter += 1
-    cnx.close() # TODO use WITH
+    cnx.close() #
 
 if __name__ == "__main__":
     threads = []
@@ -105,6 +107,7 @@ if __name__ == "__main__":
     }
 
     create_new_db(dbconfig)
+    truncate_db(dbconfig)
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
