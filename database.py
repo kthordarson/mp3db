@@ -46,7 +46,7 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash)
         print ("ERR {} ".format(e))
 
     file_id = cursor.lastrowid
-    conn.commit()
+    # conn.commit()
     tag_list = {}
 
     # insert all found fields into DB
@@ -70,13 +70,13 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash)
             # sql_command = "ALTER TABLE Files ADD %s VARCHAR (255) NULL DEFAULT ''"
             sql_command= "ALTER TABLE Files ADD {} VARCHAR (255) NULL DEFAULT ''".format(field)
             cursor.execute(sql_command)
-            conn.commit()
+            # conn.commit()
         except pymysql.err.InternalError as e:
             if e.args[0] == 1060: pass # error 1060 is duplicate warning
         try: # add all new columns found in id3 tag ot our db
             sql_command = """UPDATE IGNORE files SET {} = %s WHERE file_id = %s""".format(field)
             cursor.execute(sql_command, (tag_value,file_id,))
-            conn.commit()
+            # conn.commit()
         except TypeError as e:
             print ("Error UPDATE file DB: {} {}".format(filename, e))
             pass
@@ -90,16 +90,14 @@ def db_process_filename2(connection, cursor, filehash):
     # get all unique artist
     sql_command = """SELECT * FROM files WHERE filehash=%s"""
     cursor.execute(sql_command, [filehash])
-    connection.commit()
+    # connection.commit()
     for row in cursor.fetchall():
-        album = row.get('album')
         artistname = row.get('artist')
         file_id = row.get('file_id')
         album = row.get('album')
         albumartistname = row.get('albumartist')
         title = row.get('title')
         filename = row.get('filename')
-        albumartist = row.get('albumartist')
 
 # TODO fix duplicate entries
 
@@ -109,11 +107,10 @@ def db_process_filename2(connection, cursor, filehash):
         res = cursor.fetchone()
         if res is None:
             # insert
-#            print ("Insert")
             sql_command = """INSERT INTO artist (artistname) VALUES (%s)"""
             cursor.execute(sql_command,[artistname])
             artist_id = cursor.lastrowid
-            connection.commit()
+            # connection.commit()
         else:
             artist_id= res.get('artist_id')
 #            print ("no insert", res)
@@ -128,10 +125,9 @@ def db_process_filename2(connection, cursor, filehash):
             sql_command = """INSERT INTO albumartist (albumartistname) VALUES (%s)"""
             cursor.execute(sql_command,[albumartistname])
             albumartist_id = cursor.lastrowid
-            connection.commit()
+            # connection.commit()
         else:
             albumartist_id = res.get('albumartist_id')
-  #          print ("no insert", res)
 
         # first look in album table for existing album
         sql_command = """SELECT album_id FROM album WHERE name = (%s) AND (artist_id = %s OR albumartist_id = %s)"""
@@ -142,17 +138,14 @@ def db_process_filename2(connection, cursor, filehash):
             sql_command = """INSERT INTO album (name, artist_id, albumartist_id) VALUES (%s, %s, %s)"""
             cursor.execute(sql_command,[album, artist_id, albumartist_id])
             album_id = cursor.lastrowid
-            connection.commit()
+            # # connection.commit()
         else:
             album_id = res.get('album_id')
-#            print ("no insert", res)
-
         # get all unique songs
         # get artist_id and albumartist_id from tables...
-        print ("File id {} filename {} ".format(file_id, filename))
         sql_command = """INSERT INTO song (file_id,title, album_id, artist_id, albumartist_id) VALUES (%s, %s, %s, %s, %s) """  # .format(file_id, filename)
         cursor.execute(sql_command, [file_id, title, album_id, artist_id, albumartist_id])
-        connection.commit()
+        # connection.commit()
 
 
 def truncate_db(dbconfig):
@@ -171,15 +164,15 @@ def truncate_db(dbconfig):
     with conn.cursor() as cursor:
         cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
         cursor.execute("TRUNCATE album")
-        conn.commit()
+        # conn.commit()
         cursor.execute("TRUNCATE albumartist")
-        conn.commit()
+        # conn.commit()
         cursor.execute("TRUNCATE artist")
-        conn.commit()
+        # conn.commit()
         cursor.execute("TRUNCATE files")
-        conn.commit()
+        # conn.commit()
         cursor.execute("TRUNCATE song")
-        conn.commit()
+        # conn.commit()
         cursor.execute("SET FOREIGN_KEY_CHECKS=1;")
 
     return
@@ -222,7 +215,7 @@ def create_new_db(dbconfig):
                 continue
         full_line = ''
     conn.cursor().execute("SET FOREIGN_KEY_CHECKS=1;")
-    conn.commit()
+    # conn.commit()
     print("Done creating new DB")
     # db.close()
 #

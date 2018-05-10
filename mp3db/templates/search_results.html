@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+
+        <p>You searched for: <strong>{{ query }}</strong></p>
+
+        {% if results %}
+            <p>Results:</p>
+            {% for name in results %}
+            <li>{{ name.file_id }} {{ name.title }}</li>
+            {% endfor %}
+        {% else %}
+            <p>No result for {{ query }} Error: {{ error }}. </p>
+        {% endif %}
+{% endblock %}

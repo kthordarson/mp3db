@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+{% if error %}
+<p >Please submit a search term.</p>
+{% endif %}
+<form action="/search/" method="get">
+	<input type="text" name="q">
+	<input type="submit" value="Search">
+</form>
+<p><a href="{% url 'artist_list' %}">artist list</a>
+<form action="artist/">
+	artist_id: <input type="text" name="id">
+	<input type="submit"  value="artist_id">
+</form>
+</p>
+<p><a href="{% url 'getalbums' %}">getalbums</a>
+<form action="getalbums/">
+	album_id: <input type="text" name="id">
+	<input type="submit" value="album_id">
+</form>
+</p>
+<p>
+<p><a href="{% url 'gettracks' %}">gettracks</a></p>
+<form action="getalbum_tracks/">
+	album_id: <input type="text" name="id">
+	<input type="submit"  value="artist_id">
+</form>
+<p>rescan database
+<form action="rescan_db/">
+	path: <input type="text" name="id">
+	<input type="submit"  value="path">
+</form>
+</p>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<ul>
+    <table border="1">
+    <tr>
+        <th align="left">Artist ID</th>
+        <th align="left">Artist name</th>
+        <th align="left">Album count</th>
+    </tr>
+        {%for name in result %}
+            <tr>
+                <td><a href="/artist/?id={{ name.artist_id }}">{{ name.artist_id }}</a></td>
+                <td><a href="/artist/?id={{ name.artist_id }}">{{ name.artistname }}</a></td>
+                <td><a href="/getalbums/?id={{ name.artist_id }}">{{ name.albumcount }}</a></td>
+            </tr>
+            {% endfor %}
+    </table>
+</ul>
+{% endblock %}
