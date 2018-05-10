@@ -87,25 +87,6 @@ def update_db(mp3list_temp, dbconfig,time_diff):
     time_diff += (end_time - start_time)
     print('Scanned THREAD  elapsed time {} '.format(time_diff))
 
-
-# with cnx.cursor() as cursor:
-#     if not shutdown_event.is_set():
-#         # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
-#         cursor.execute("SELECT filehash FROM Files WHERE filehash = %s ", (filehash,))
-#         data = cursor.fetchone()
-#         #                connector.commit()
-#         if data is None:  # Search db, insert if file not already in db
-#             meta = getmetadata_mutagen(file)
-#             filesize = os.path.getsize(file)
-#             file_id = db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta,
-#                                                  filehash=filehash)
-#             if file_id:
-#                 print("Inserted {} ".format(file))
-#                 db_process_filename2(cnx, cursor, file_id)
-#             else:
-#                 print("Error reading file {} ".format(filename))
-
-
 def run_scan(dbconfig,mp3_root):
     thread_id = 1
     threads = []

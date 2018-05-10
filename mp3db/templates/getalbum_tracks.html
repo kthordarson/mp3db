@@ -1,20 +1,22 @@
 {% extends 'base.html' %}
 {% block content %}
-    <p>{{ albumname }}</p>
-    <table border="1">
-    <tr>
-        <th align="left">Song ID</th>
-        <th align="left">Song name</th>
-        <th align="left">Artist id</th>
-        <th align="left">Artist name</th>
-    </tr>
-        {%for song in results %}
-            <tr>
-                <td> {{ song.song_id }}</td>
-                <td>{{ song.title }}</td>
-                <td>{{ song.artist_id }}</td>
-                <td>{{ artistname }}</td>
-            </tr>
-            {% endfor %}
-    </table>
+    <div class="w3-container">
+        <h1>{{ albumname }}</h1>
+        <table class="w3-table-all">
+        <tr>
+            <th align="left">Song ID</th>
+            <th align="left">Song name</th>
+            <th align="left">Artist id</th>
+            <th align="left">Artist name</th>
+        </tr>
+            {%for song in results %}
+                <tr>
+                    <td> {{ song.song_id }}</td>
+                    <td>{{ song.title }}</td>
+                    <td>{{ song.artist_id }}</td>
+                    <td>{{ artistname }}</td>
+                </tr>
+                {% endfor %}
+        </table>
+    </div>
 {% endblock %}

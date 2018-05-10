@@ -47,10 +47,18 @@ def artist_list(request):
     return render(request,'artist_list.html', {'result': result})
     return artist
 
+def song_list(request):
+    #db = MySQLdb.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig)
+    cursor = cnx.cursor()
+    cursor.execute("SELECT * FROM song")
+    results = dictfetchall(cursor)
+    return render(request,'song_list.html', {'results': results})
+    return artist
+
 def artist(request):
     cnx = pymysql.connect(**dbconfig)
     cursor = cnx.cursor()
-#    sql_command = """SELECT artist_id, artistname FROM artist artist_id = %s"""
     if 'id' in request.GET:
         id = request.GET['id']
         if not id:
@@ -65,7 +73,6 @@ def artist(request):
             return render(request,'artist.html', {'results': results, 'albumcount':albumcount})
     else:
         cursor.execute("SELECT * from artist")
-        # cursor.execute(sql_command)
         results = dictfetchall(cursor)
         return render(request, 'artist.html', {'results': results})
     return artist
@@ -106,17 +113,11 @@ def getalbum_tracks(request):
             results = cursor.fetchall()
             albumname = results[0][0]
             sql_command ="SELECT * from song where album_id = %s"
-            # sql_command = "select song.song_id, song.title, song.artist_id,artist.artistname from song join artist on song.artist_id = artist.artist_id"
             cursor.execute(sql_command,[id])
             results = dictfetchall(cursor)
-            #results = cursor.fetchall()
             cursor.execute("SELECT artistname FROM artist WHERE artist_id=%s",[id])
             aname = dictfetchall(cursor)
             artistname = aname[0]['artistname']
-            #aname = cursor.fetchall()
-            #results += aname
-            #z = {**results, **aname}
-            #z = dict(results.items() + aname.items())
             return render(request, 'getalbum_tracks.html', {'results': results, 'artistname':artistname, 'albumname':albumname})
     else:
         return render(request, 'index.html')

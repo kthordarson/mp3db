@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<ul>
+    <table class="w3-table-all">
+    <tr>
+        <th align="left">Song ID</th>
+        <th align="left">Title</th>
+        <th align="left">Artist</th>
+        <th align="left">Album</th>
+    </tr>
+        {%for result in results %}
+            <tr>
+                <td><a href="/artist/?id={{ result.song_id }}">{{ result.song_id }}</a></td>
+                <td><a href="/artist/?id={{ result.title }}">{{ result.title }}</a></td>
+                <td><a href="/artist_list/?id={{ result.artist_id }}">{{ result.artist_id }}</a></td>
+                <td><a href="/getalbums/?id={{ result.album_id }}">{{ result.album_id }}</a></td>
+            </tr>
+            {% endfor %}
+    </table>
+</ul>
+{% endblock %}
