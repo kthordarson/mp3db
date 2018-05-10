@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include, re_path
-from mp3db.views import hello,current_datetime,  artist_list,getalbums,getalbum_tracks,search,artist
+from mp3db.views import hello,current_datetime,  artist_list,getalbums,getalbum_tracks,search,artist,rescan_db
 from django.conf import settings
 from django.conf.urls import include, url
 
@@ -26,6 +26,7 @@ urlpatterns = [
     path('time', current_datetime),
     path('artist_list/', artist_list,name='artist_list'),
     path('artist/', artist,name='artist'),
+    path('rescan_db/', rescan_db,name='rescan_db'),
     re_path(r'^getalbums/$', getalbums, name='getalbums'),
     re_path(r'^getalbum_tracks/$', getalbum_tracks, name='gettracks'),
     re_path(r'^search/$', search),

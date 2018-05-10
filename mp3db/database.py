@@ -8,6 +8,10 @@ import warnings
 import itertools
 # import pymysql.cursors.DictCursor
 import pymysql
+import os
+from mymp3thing.settings import BASE_DIR
+# from django.conf.settings import PROJECT_ROOT
+
 
 def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash):
     # print ("Scanning file {}".format(filename))
@@ -22,14 +26,6 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash)
     filename = os.path.realpath(filename)
     filename = filename.replace('\\', '/')
 
-    # create fake filehash for faster searching...
-#    filehash = filename.encode('utf-8')
-#    filehash = hashlib.md5(filehash)
-#    filehash = filehash.hexdigest()
-
-   # tag_list = {'filehash': filehash, 'filename': filename, 'size': str(size)}
-#    sql_command = "INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)"
-#    cursor.execute(sql_command, [filename, size, filehash])
     try:
         # cursor.execute('INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)',(filename, size, filehash))
         sql_command = "INSERT INTO Files (filename,size, filehash) VALUES (%s, %s, %s)"
@@ -80,16 +76,16 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash)
         except TypeError as e:
             print ("Error UPDATE file DB: {} {}".format(filename, e))
             pass
-    return
+    return last_fileid
 
 
-def db_process_filename2(connection, cursor, filehash):
+def db_process_filename2(connection, cursor, file_id):
     #innerconn = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
 
     inner_cursor = connection.cursor()
     # get all unique artist
-    sql_command = """SELECT * FROM files WHERE filehash=%s"""
-    cursor.execute(sql_command, [filehash])
+    sql_command = """SELECT * FROM files WHERE file_id=%s"""
+    cursor.execute(sql_command, [file_id])
     # connection.commit()
     for row in cursor.fetchall():
         artistname = row.get('artist')
@@ -145,6 +141,8 @@ def db_process_filename2(connection, cursor, filehash):
         # get artist_id and albumartist_id from tables...
         sql_command = """INSERT INTO song (file_id,title, album_id, artist_id, albumartist_id) VALUES (%s, %s, %s, %s, %s) """  # .format(file_id, filename)
         cursor.execute(sql_command, [file_id, title, album_id, artist_id, albumartist_id])
+        song_id = cursor.lastrowid
+        print ("Last insert file_id {} song_id {}".format(file_id, song_id))
         # connection.commit()
 
 
@@ -190,7 +188,10 @@ def create_new_db(dbconfig):
     conn.cursor().execute('SET NAMES utf8;')
     conn.cursor().execute('SET CHARACTER SET utf8;')
     conn.cursor().execute('SET character_set_connection=utf8;')
-    path_to_file = "mp3db.sql"
+    file = os.path.realpath(BASE_DIR)
+    file = file.replace('\\', '/')
+    path_to_file= os.path.join(BASE_DIR,'mp3db.sql')
+    #path_to_file = "mp3db.sql"
     full_line = ''
     for line in open(path_to_file):
         temp_line = line.strip()

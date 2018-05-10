@@ -1,6 +1,6 @@
 # mp3 collection thing
 from pathlib import Path
-from database import *
+from .database import *
 import configparser
 import time
 import threading
@@ -63,52 +63,58 @@ def update_db(mp3list_temp, dbconfig,time_diff):
     cnx.autocommit = True
     # cursor = cnx.cursor()
     print ("Starting file scan....")
-    for file in mp3list_temp:
-        file = os.path.realpath(file)
-        file = file.replace('\\', '/')
-        filehash = get_hash(file)
-        with cnx.cursor() as cursor:
-            if not shutdown_event.is_set():
+    with cnx.cursor() as cursor:
+        if not shutdown_event.is_set():
+            for file in mp3list_temp:
+                file = os.path.realpath(file)
+                file = file.replace('\\', '/')
+                filehash = get_hash(file)
                 # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
-                cursor.execute("SELECT DISTINCT filehash FROM Files WHERE filehash = %s ", (filehash,))
+                cursor.execute("SELECT filehash FROM Files WHERE filehash = %s ", (filehash,))
                 data = cursor.fetchone()
                 #                connector.commit()
                 if data is None:  # Search db, insert if file not already in db
                     meta = getmetadata_mutagen(file)
                     filesize = os.path.getsize(file)
-                    db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta, filehash=filehash)
-                    db_process_filename2(cnx, cursor=cursor, filehash=filehash)
+                    file_id = db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta, filehash=filehash)
+                    if file_id:
+                        print ("Inserted {} ".format(file))
+                        db_process_filename2(cnx, cursor, file_id)
+                    else:
+                        print ("Error reading file {} ".format(filename))
     cnx.close() #
     end_time = time.time()
     time_diff += (end_time - start_time)
     print('Scanned THREAD  elapsed time {} '.format(time_diff))
 
-if __name__ == "__main__":
-    threads = []
+
+# with cnx.cursor() as cursor:
+#     if not shutdown_event.is_set():
+#         # cursor.execute("SELECT * FROM Files WHERE Filename LIKE %s ", (file,))
+#         cursor.execute("SELECT filehash FROM Files WHERE filehash = %s ", (filehash,))
+#         data = cursor.fetchone()
+#         #                connector.commit()
+#         if data is None:  # Search db, insert if file not already in db
+#             meta = getmetadata_mutagen(file)
+#             filesize = os.path.getsize(file)
+#             file_id = db_insert_filename_mutagen(cnx, cursor=cursor, size=filesize, filename=file, metadata=meta,
+#                                                  filehash=filehash)
+#             if file_id:
+#                 print("Inserted {} ".format(file))
+#                 db_process_filename2(cnx, cursor, file_id)
+#             else:
+#                 print("Error reading file {} ".format(filename))
+
+
+def run_scan(dbconfig,mp3_root):
     thread_id = 1
+    threads = []
     max_threads = 4
     time_diff = 0
     start_time = time.time()
 
-    # read config file
-    config = configparser.ConfigParser()
-    config.sections()
-    config.read('config.ini')
-    db_host = config['DEFAULT']['server']
-    db_user = config['DEFAULT']['user']
-    db_pass = config['DEFAULT']['pass']
-    db_database = config['DEFAULT']['db_database']
-    mp3_root = config['DEFAULT']['mp3_root_path']
-    dbconfig = {
-        "user": db_user,
-        "password": db_pass,
-        "database": db_database,
-        "host": db_host,
-        "charset": 'utf8',
-    }
-
     create_new_db(dbconfig)
-    # truncate_db(dbconfig)
+    truncate_db(dbconfig)
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
@@ -146,3 +152,6 @@ if __name__ == "__main__":
         #print ("Thread {} terminating".format(i))
         end_time = time.time()
         #print('Scanned {0:} elapsed time {1:8.2f} '.format(mp3_root, (end_time - start_time)))
+
+if __name__ == "__main__":
+    run_scan(dbconfig,path)

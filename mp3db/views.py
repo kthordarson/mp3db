@@ -6,6 +6,8 @@ import datetime
 from django.shortcuts import render
 import pymysql.cursors
 import pymysql
+from .scandb import run_scan
+
 dbconfig = {
     "user": 'mp3db',
     "password": 'mp3db',
@@ -134,3 +136,14 @@ def search(request):
             # results = cursor.fetchall()
             return render(request, 'search_results.html', {'results':results, 'query':q})
     return render(request, 'search_results.html', {'query':q, 'error': error})
+
+def rescan_db(request):
+    error = False
+    if 'path' in request.GET:
+        path = request.GET['path']
+        if not path:
+            error = True
+        else:
+            run_scan(dbconfig,path)
+            render(request, 'index.html')
+    return render(request,'index.html')

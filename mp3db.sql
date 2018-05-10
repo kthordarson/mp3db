@@ -1,6 +1,4 @@
 SET foreign_key_checks = 0;
-DROP DATABASE IF EXISTS `mp3dbweb`;
-CREATE DATABASE IF NOT EXISTS `mp3dbweb` /*!40100 DEFAULT CHARACTER SET utf8 */;
 USE `mp3dbweb`;
 
 DROP TABLE IF EXISTS `album`;
