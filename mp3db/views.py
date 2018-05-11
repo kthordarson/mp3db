@@ -18,13 +18,37 @@ dbconfig = {
 
 
 def hello(request):
-    return render(request,'index.html')
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
+    cursor = cnx.cursor()
+    # counters
+    sql_command = """
+    SELECT 
+        COUNT(*) AS "Files", 
+        COUNT(distinct artist) AS "Artists",
+        COUNT(distinct albumartist) AS "Albumartists",
+        COUNT(DISTINCT album) AS "Albums",
+        COUNT(distinct genre) AS "Genres"
+    FROM files
+"""
+    cursor.execute(sql_command)
+#    result = cursor.fetchall()
+    results = cursor.fetchall()
+    results = results[0]
 
-def current_datetime(request):
-    now = datetime.datetime.now()
-    return render(request, 'current_datetime.html', {'current_date': now})
+    # get top genres
+    sql_command = """
+    select genre as "genre", count( genre) as "count" from files
+    where genre != ''
+    group by genre
+    order by count(genre) DESC limit 10
 
-def dictfetchall(cursor):
+    """
+    cursor.execute(sql_command)
+    genres_stats = cursor.fetchall()
+    # genres_stats = genres_stats[0]
+    return render(request,'index.html', {'results':results, 'genres_stats':genres_stats})
+
+def dictfetchall():
     "Returns all rows from a cursor as a dict"
     desc = cursor.description
     return [
@@ -34,8 +58,9 @@ def dictfetchall(cursor):
 
 
 def artist_list(request):
-    #db = MySQLdb.connect(**dbconfig)
-    cnx = pymysql.connect(**dbconfig)
+    # get list of all artist
+    # db = MySQLdb.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     sql_command = """
         SELECT artist.artist_id, artist.artistname,
@@ -43,21 +68,23 @@ def artist_list(request):
         FROM artist    
     """
     cursor.execute(sql_command)
-    result = dictfetchall(cursor)
+    #result = cursor.fetchall()
+    result = cursor.fetchall()
     return render(request,'artist_list.html', {'result': result})
     return artist
 
 def song_list(request):
+    # get list of all songs
     #db = MySQLdb.connect(**dbconfig)
-    cnx = pymysql.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     cursor.execute("SELECT * FROM song")
-    results = dictfetchall(cursor)
+    result = cursor.fetchall()
     return render(request,'song_list.html', {'results': results})
     return artist
 
 def artist(request):
-    cnx = pymysql.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     if 'id' in request.GET:
         id = request.GET['id']
@@ -66,20 +93,21 @@ def artist(request):
         else:
             sql_command = """select * from artist where artist_id = %s"""
             cursor.execute(sql_command,[id])
-            results = dictfetchall(cursor)
+            result = cursor.fetchall()
             cursor.execute("SELECT COUNT(*) from album where artist_id=%s",[id])
             albumcount = cursor.fetchone()
             albumcount = albumcount[0]
             return render(request,'artist.html', {'results': results, 'albumcount':albumcount})
     else:
         cursor.execute("SELECT * from artist")
-        results = dictfetchall(cursor)
+        result = cursor.fetchall()
         return render(request, 'artist.html', {'results': results})
     return artist
 
 
 def getalbums(request):
-    cnx = pymysql.connect(**dbconfig)
+    # get list of all albums in database
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     if 'id' in request.GET:
         id = request.GET['id']
@@ -92,38 +120,53 @@ def getalbums(request):
             artist_name = str(result)
             sql_command ="SELECT * from album where artist_id = %s"
             cursor.execute(sql_command,[id])
-            result = dictfetchall(cursor)
+            result = cursor.fetchall()
             return render(request, 'getalbums.html', {'result': result, 'artist_name':artist_name})
     else:
             sql_command = "SELECT * from album"
             cursor.execute(sql_command)
-            result = dictfetchall(cursor)
+            result = cursor.fetchall()
             return render(request, 'getalbums.html', {'result': result})
 
 
 def getalbum_tracks(request):
-    cnx = pymysql.connect(**dbconfig)
+    # get all track from given album_id
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     if 'id' in request.GET:
         id = request.GET['id']
         if not id:
             error = True
         else:
+            sql_command= """
+                SELECT 
+                song.song_id,
+                song.title,
+                song.artist_id,
+                artist.artistname
+                FROM song 
+                INNER JOIN artist
+                    ON song.artist_id = artist.artist_id
+                WHERE album_id = %s
+            """
+            cursor.execute(sql_command,[id])
+            album_info = cursor.fetchall()
+            # #make this one sql command
             cursor.execute("SELECT name from album where album_id = %s",[id])
             results = cursor.fetchall()
-            albumname = results[0][0]
-            sql_command ="SELECT * from song where album_id = %s"
-            cursor.execute(sql_command,[id])
-            results = dictfetchall(cursor)
-            cursor.execute("SELECT artistname FROM artist WHERE artist_id=%s",[id])
-            aname = dictfetchall(cursor)
-            artistname = aname[0]['artistname']
-            return render(request, 'getalbum_tracks.html', {'results': results, 'artistname':artistname, 'albumname':albumname})
+            albumname = results[0]['name']
+            # sql_command ="SELECT * from song where album_id = %s"
+            # cursor.execute(sql_command,[id])
+            # results = cursor.fetchall()
+            # cursor.execute("SELECT artistname FROM artist WHERE artist_id=%s",[id])
+            # aname = cursor.fetchall()
+            # artistname = aname[0]['artistname']
+            return render(request, 'getalbum_tracks.html', {'results': album_info,'albumname':albumname})
     else:
         return render(request, 'index.html')
 
 def search(request):
-    cnx = pymysql.connect(**dbconfig)
+    cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     error = False
     if 'q' in request.GET:
@@ -131,9 +174,9 @@ def search(request):
         if not q:
             error = True
         else:
-            sql_command ='SELECT * FROM files WHERE album REGEXP "^{}" '.format(q)
+            sql_command ='SELECT * FROM files WHERE artist REGEXP "^{}" '.format(q)
             cursor.execute(sql_command)
-            results = dictfetchall(cursor)
+            results = cursor.fetchall()
             # results = cursor.fetchall()
             return render(request, 'search_results.html', {'results':results, 'query':q})
     return render(request, 'search_results.html', {'query':q, 'error': error})

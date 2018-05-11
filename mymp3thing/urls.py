@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include, re_path
-from mp3db.views import hello,current_datetime,  artist_list,getalbums,getalbum_tracks,search,artist,rescan_db,song_list
+from mp3db.views import hello,  artist_list,getalbums,getalbum_tracks,search,artist,rescan_db,song_list
 from django.conf import settings
 from django.conf.urls import include, url
 
@@ -23,7 +23,6 @@ from django.conf.urls import include, url
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', hello, name="hello"),
-    path('time', current_datetime),
     path('artist_list/', artist_list,name='artist_list'),
     path('artist/', artist,name='artist'),
     path('song_list/', song_list,name='song_list'),

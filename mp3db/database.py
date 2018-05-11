@@ -142,7 +142,7 @@ def db_process_filename2(connection, cursor, file_id):
         sql_command = """INSERT INTO song (file_id,title, album_id, artist_id, albumartist_id) VALUES (%s, %s, %s, %s, %s) """  # .format(file_id, filename)
         cursor.execute(sql_command, [file_id, title, album_id, artist_id, albumartist_id])
         song_id = cursor.lastrowid
-        print ("Last insert file_id {} song_id {}".format(file_id, song_id))
+        # print ("Last insert file_id {} song_id {}".format(file_id, song_id))
         # connection.commit()
 
 

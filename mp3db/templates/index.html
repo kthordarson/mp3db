@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
-{% if error %}
-<h1 >Please submit a search term.</h1>
-{% endif %}
+    <h1>In database:</h1>
+    <h2> Files: {{ results.Files }}</h2>
+    <h2>Artist: {{ results.Artists }} </h2>
+    <h2>Album artists: {{ results.Albumartists }} </h2>
+    <h2>Albums: {{ results.Albums }} </h2>
+    <h2>Genres: {{ results.Genres }}</h2>
     <div class="w3-container">
         <p>
         <form action="/search/" method="get" class="w3-container">
@@ -38,5 +41,18 @@
             <input type="submit"  value="Scan">
         </form>
         </p>
+        <table class="w3-table-all">
+        <tr>
+            <th align="left">Genre</th>
+            <th align="left">Count</th>
+        </tr>
+                {%for items in genres_stats %}
+                <tr>
+                    <td> {{ items.genre }}</td>
+                    <td>{{ items.count }}</td>
+                </tr>
+                {% endfor %}
+        </table>
+
     </div>
 {% endblock %}

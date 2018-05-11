@@ -8,6 +8,7 @@ import pymysql.cursors
 import pymysql
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MutagenError
 
 # For use in signaling
 shutdown_event = threading.Event()
@@ -34,6 +35,9 @@ def getmetadata_mutagen(mp3file):
         return metadata
     except OSError as e:
         print("Error reading tag from {} {}".format(mp3file, e))
+        time.sleep(1)
+    except Exception as e:
+        print ("Error reading tag header from {} {} ".format(mp3file,e))
         time.sleep(1)
     return None
 
@@ -94,8 +98,8 @@ def run_scan(dbconfig,mp3_root):
     time_diff = 0
     start_time = time.time()
 
-    create_new_db(dbconfig)
-    truncate_db(dbconfig)
+    #create_new_db(dbconfig)
+    #truncate_db(dbconfig)
     # build file list
     mp3list = scanfolder_glob(mp3_root)
 
