@@ -45,8 +45,16 @@ def hello(request):
     """
     cursor.execute(sql_command)
     genres_stats = cursor.fetchall()
-    # genres_stats = genres_stats[0]
-    return render(request,'index.html', {'results':results, 'genres_stats':genres_stats})
+
+    #get top artists
+    sql_command = """
+    select artist_id as "Artist id", artistname, count(artist_id) as "Count" from artist
+    group by artistname
+    order by count(artist_id) DESC limit 10
+    """
+    cursor.execute(sql_command)
+    artist_stats = cursor.fetchall()
+    return render(request,'index.html', {'results':results, 'genres_stats':genres_stats, 'artist_stats':artist_stats})
 
 def dictfetchall():
     "Returns all rows from a cursor as a dict"
@@ -79,7 +87,7 @@ def song_list(request):
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     cursor.execute("SELECT * FROM song")
-    result = cursor.fetchall()
+    results = cursor.fetchall()
     return render(request,'song_list.html', {'results': results})
     return artist
 

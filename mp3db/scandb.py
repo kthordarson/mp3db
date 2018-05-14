@@ -98,7 +98,7 @@ def run_scan(dbconfig,mp3_root):
     time_diff = 0
     start_time = time.time()
 
-    #create_new_db(dbconfig)
+    # create_new_db(dbconfig)
     #truncate_db(dbconfig)
     # build file list
     mp3list = scanfolder_glob(mp3_root)
