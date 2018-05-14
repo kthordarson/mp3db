@@ -101,14 +101,14 @@ def artist(request):
         else:
             sql_command = """select * from artist where artist_id = %s"""
             cursor.execute(sql_command,[id])
-            result = cursor.fetchall()
-            cursor.execute("SELECT COUNT(*) from album where artist_id=%s",[id])
-            albumcount = cursor.fetchone()
-            albumcount = albumcount[0]
+            results = cursor.fetchall()
+            cursor.execute("SELECT COUNT(*) as Count from album where artist_id=%s",[id])
+            albumcount = cursor.fetchall()
+            albumcount = albumcount[0]['Count']
             return render(request,'artist.html', {'results': results, 'albumcount':albumcount})
     else:
         cursor.execute("SELECT * from artist")
-        result = cursor.fetchall()
+        results = cursor.fetchall()
         return render(request, 'artist.html', {'results': results})
     return artist
 

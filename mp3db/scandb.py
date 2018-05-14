@@ -9,7 +9,7 @@ import pymysql
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MutagenError
-
+import hashlib
 # For use in signaling
 shutdown_event = threading.Event()
 
