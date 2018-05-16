@@ -10,12 +10,33 @@
     </tr>
         {%for result in results %}
             <tr>
-                <td><a href="/artist/?id={{ result.song_id }}">{{ result.song_id }}</a></td>
-                <td><a href="/artist/?id={{ result.title }}">{{ result.title }}</a></td>
-                <td><a href="/artist_list/?id={{ result.artist_id }}">{{ result.artist_id }}</a></td>
-                <td><a href="/getalbums/?id={{ result.album_id }}">{{ result.album_id }}</a></td>
+                <td><a href="/artist/?id={{ results.song_id }}">1 {{ results.song_id }}</a></td>
+                <td><a href="/artist/?id={{ results.title }}">2 {{ results.title }}</a></td>
+                <td><a href="/artist_list/?id={{ results.artist_id }}">3 {{ results.artist_id }}</a></td>
+                <td><a href="/getalbums/?id={{ results.album_id }}">4 {{ results.album_id }}</a></td>
             </tr>
             {% endfor %}
     </table>
 </ul>
+
+
+    <div class="pagination">
+    <span class="step-links">
+        {% if results.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ results.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ results.number }} of {{ results.paginator.num_pages }}.
+        </span>
+
+        {% if results.has_next %}
+            <a href="?page={{ results.next_page_number }}">next</a>
+            <a href="?page={{ results.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+
 {% endblock %}

@@ -7,7 +7,7 @@ from django.shortcuts import render
 import pymysql.cursors
 import pymysql
 from .scandb import run_scan
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 dbconfig = {
     "user": 'mp3db',
     "password": 'mp3db',
@@ -48,9 +48,10 @@ def hello(request):
 
     #get top artists
     sql_command = """
-    select artist_id as "Artist id", artistname, count(artist_id) as "Count" from artist
-    group by artistname
-    order by count(artist_id) DESC limit 10
+    select song.artist_id as "Artist id", count(song.artist_id) AS "Count", artist.artistname as "artistname" from song,artist
+    where song.artist_id = artist.artist_id
+    group by song.artist_id
+    order by count(song.artist_id) DESC limit 20
     """
     cursor.execute(sql_command)
     artist_stats = cursor.fetchall()
@@ -68,6 +69,7 @@ def dictfetchall():
 def artist_list(request):
     # get list of all artist
     # db = MySQLdb.connect(**dbconfig)
+    page = request.GET.get('page', 1)
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     sql_command = """
@@ -77,19 +79,36 @@ def artist_list(request):
     """
     cursor.execute(sql_command)
     #result = cursor.fetchall()
-    result = cursor.fetchall()
-    return render(request,'artist_list.html', {'result': result})
-    return artist
+    results = cursor.fetchall()
+    paginator = Paginator(results, 100)
+    try:
+        results = paginator.page(page)
+    except PageNotAnInteger:
+        results = paginator.page(1)
+    except EmptyPage:
+        results = paginator.page(paginator.num_pages)
+    return render(request,'artist_list.html', {'result': results})
+
+
 
 def song_list(request):
+    page = request.GET.get('page', 1)
     # get list of all songs
     #db = MySQLdb.connect(**dbconfig)
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
-    cursor.execute("SELECT * FROM song")
+    cursor.execute("SELECT * FROM song LIMIT 100")
     results = cursor.fetchall()
-    return render(request,'song_list.html', {'results': results})
-    return artist
+    paginator = Paginator(results, 10)
+    try:
+        results = paginator.page(page)
+    except PageNotAnInteger:
+        results = paginator.page(1)
+    except EmptyPage:
+        results = paginator.page(paginator.num_pages)
+    return render(request, 'song_list.html', {'results': results})
+#    return render(request,'song_list.html', {'results': results})
+#    return artist
 
 def artist(request):
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
@@ -114,6 +133,7 @@ def artist(request):
 
 
 def getalbums(request):
+    page = request.GET.get('page', 1)
     # get list of all albums in database
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
@@ -128,13 +148,29 @@ def getalbums(request):
             artist_name = str(result)
             sql_command ="SELECT * from album where artist_id = %s"
             cursor.execute(sql_command,[id])
-            result = cursor.fetchall()
-            return render(request, 'getalbums.html', {'result': result, 'artist_name':artist_name})
+            results = cursor.fetchall()
+            paginator = Paginator(results, 100)
+            try:
+                results = paginator.page(page)
+            except PageNotAnInteger:
+                results = paginator.page(1)
+            except EmptyPage:
+                results = paginator.page(paginator.num_pages)
+            return render(request, 'getalbums.html', {'result': results, 'artist_name':artist_name})
+
+#            return render(request, 'getalbums.html', {'result': result, 'artist_name':artist_name})
     else:
             sql_command = "SELECT * from album"
             cursor.execute(sql_command)
-            result = cursor.fetchall()
-            return render(request, 'getalbums.html', {'result': result})
+            results = cursor.fetchall()
+            paginator = Paginator(results, 100)
+            try:
+                results = paginator.page(page)
+            except PageNotAnInteger:
+                results = paginator.page(1)
+            except EmptyPage:
+                results = paginator.page(paginator.num_pages)
+            return render(request, 'getalbums.html', {'result': results})
 
 
 def getalbum_tracks(request):
