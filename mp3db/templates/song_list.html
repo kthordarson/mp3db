@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+    <h1>Songs</h1>
 <ul>
     <table class="w3-table-all">
     <tr>
@@ -7,13 +8,15 @@
         <th align="left">Title</th>
         <th align="left">Artist</th>
         <th align="left">Album</th>
+        <th align="left">Image</th>
     </tr>
-        {%for result in results %}
+        {% for result in results %}
             <tr>
-                <td><a href="/artist/?id={{ results.song_id }}">1 {{ results.song_id }}</a></td>
-                <td><a href="/artist/?id={{ results.title }}">2 {{ results.title }}</a></td>
-                <td><a href="/artist_list/?id={{ results.artist_id }}">3 {{ results.artist_id }}</a></td>
-                <td><a href="/getalbums/?id={{ results.album_id }}">4 {{ results.album_id }}</a></td>
+                <td><a href="/artist/?id={{ result.song_id }}">{{ result.song_id }}</a></td>
+                <td><a href="/artist/?id={{ result.title }}">{{ result.title }}</a></td>
+                <td><a href="/artist_list/?id={{ result.artist_id }}">{{ result.artist_id }}</a></td>
+                <td><a href="/getalbums/?id={{ result.album_id }}">{{ result.album_id }}</a></td>
+                <td><img src="{{ result.APIC }}" > </img> </td>
             </tr>
             {% endfor %}
     </table>

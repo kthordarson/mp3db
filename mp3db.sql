@@ -87,4 +87,7 @@ CREATE TABLE IF NOT EXISTS `song` (
   PRIMARY KEY (`song_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+ALTER TABLE song ADD INDEX file_id (file_id);
+ALTER TABLE song ADD INDEX artist_id (artist_id);
+
 SET foreign_key_checks = 1;

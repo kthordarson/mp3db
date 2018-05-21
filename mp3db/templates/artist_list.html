@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+    <h1>ARTISTS</h1>
 <ul>
     <table class="w3-table-all">
     <tr>
@@ -7,7 +8,7 @@
         <th align="left">Artist name</th>
         <th align="left">Album count</th>
     </tr>
-        {%for name in result %}
+        {% for name in result %}
             <tr>
                 <td><a href="/artist/?id={{ name.artist_id }}">{{ name.artist_id }}</a></td>
                 <td><a href="/artist/?id={{ name.artist_id }}">{{ name.artistname }}</a></td>

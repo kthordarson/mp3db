@@ -194,3 +194,9 @@ if DEBUG:
    DEBUG_TOOLBAR_CONFIG = {
        'INTERCEPT_REDIRECTS': False,
    }
+   ENV_PATH = os.path.abspath(os.path.dirname(__file__))
+   PROJECT_DIR = "c:/Users/kthor/Documents/development/mp3db/mp3db"
+   MEDIA_ROOT = os.path.join(PROJECT_DIR, 'media/')
+   MEDIA_URL = "/media/"
+   STATIC_ROOT = os.path.join(PROJECT_DIR, 'static/')
+   STATIC_URL = "/static/"

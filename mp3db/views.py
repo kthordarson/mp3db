@@ -1,13 +1,11 @@
-from django.shortcuts import render
-
 # Create your views here.
-from django.http import HttpResponse
-import datetime
 from django.shortcuts import render
 import pymysql.cursors
 import pymysql
 from .scandb import run_scan
+from .wordcloud import makecloud
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from base64 import b64encode
 dbconfig = {
     "user": 'mp3db',
     "password": 'mp3db',
@@ -37,7 +35,7 @@ def hello(request):
 
     # get top genres
     sql_command = """
-    select genre as "genre", count( genre) as "count" from files
+    select DISTINCT genre as "genre", count( genre) as "count" from files
     where genre != ''
     group by genre
     order by count(genre) DESC limit 10
@@ -45,6 +43,15 @@ def hello(request):
     """
     cursor.execute(sql_command)
     genres_stats = cursor.fetchall()
+
+    # get genres word cloud
+    sql_command = """
+    select genre as "genre" from files
+    where genre != ''
+    """
+    cursor.execute(sql_command)
+    genres_wordcloud = cursor.fetchall()
+    makecloud(genres_wordcloud)
 
     #get top artists
     sql_command = """
@@ -56,14 +63,6 @@ def hello(request):
     cursor.execute(sql_command)
     artist_stats = cursor.fetchall()
     return render(request,'index.html', {'results':results, 'genres_stats':genres_stats, 'artist_stats':artist_stats})
-
-def dictfetchall():
-    "Returns all rows from a cursor as a dict"
-    desc = cursor.description
-    return [
-            dict(zip([col[0] for col in desc], row))
-            for row in cursor.fetchall()
-    ]
 
 
 def artist_list(request):
@@ -97,9 +96,17 @@ def song_list(request):
     #db = MySQLdb.connect(**dbconfig)
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
-    cursor.execute("SELECT * FROM song LIMIT 100")
+#    cursor.execute("SELECT * FROM song LIMIT 100")
+    sql_command = """
+    select song.*, files.APIC
+    from song
+    inner join files
+    on song.file_id = files.file_id
+    """
+    cursor.execute(sql_command)
     results = cursor.fetchall()
-    paginator = Paginator(results, 10)
+#    results[1]['APIC'] = b64encode(results[1]['APIC'])
+    paginator = Paginator(results, 50)
     try:
         results = paginator.page(page)
     except PageNotAnInteger:
@@ -118,10 +125,10 @@ def artist(request):
         if not id:
             error = True
         else:
-            sql_command = """select * from artist where artist_id = %s"""
+            sql_command = "select * from artist where artist_id = %s"
             cursor.execute(sql_command,[id])
             results = cursor.fetchall()
-            cursor.execute("SELECT COUNT(*) as Count from album where artist_id=%s",[id])
+            cursor.execute('SELECT COUNT(*) as Count from album where artist_id=%s', [id])
             albumcount = cursor.fetchall()
             albumcount = albumcount[0]['Count']
             return render(request,'artist.html', {'results': results, 'albumcount':albumcount})
@@ -160,7 +167,14 @@ def getalbums(request):
 
 #            return render(request, 'getalbums.html', {'result': result, 'artist_name':artist_name})
     else:
-            sql_command = "SELECT * from album"
+#            sql_command = "SELECT * from album"
+            sql_command = """
+            select album.*,count(song.song_id) as count 
+            from album
+            inner join song
+            on album.album_id = song.album_id
+            group by album.album_id
+            """
             cursor.execute(sql_command)
             results = cursor.fetchall()
             paginator = Paginator(results, 100)

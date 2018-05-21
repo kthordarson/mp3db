@@ -1,16 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
+    <H1>ALBUMS</H1>
     <div class="w3-container">
-        <h1>Album name: {{ album_name }}</h1>
-        <table class="w3-table-all">
+        <table>
         <tr>
             <th align="left">Album ID</th>
             <th align="left">Album name</th>
+            <th align="left">Tracks</th>
         </tr>
             {%for album in result %}
                 <tr>
                     <td> {{ album.album_id }}</td>
                     <td><a href="/getalbum_tracks/?id={{ album.album_id }}">{{ album.name }}</a></td>
+                    <td> {{ album.count }}</td>
                 </tr>
                 {% endfor %}
         </table>

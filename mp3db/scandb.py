@@ -7,6 +7,9 @@ import threading
 import pymysql.cursors
 import pymysql
 from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
+from PIL import Image
+from django.conf import settings
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MutagenError
 import hashlib
@@ -31,6 +34,20 @@ def getmetadata_mutagen(mp3file):
 
         for valid_tags in klist:
             metadata.append((valid_tags, f.ID3.get(f, valid_tags)[0]))
+
+        get_pic = ID3(mp3file)
+        try:
+            image = get_pic._DictProxy__dict['APIC:'].data
+            img_basename = os.path.basename(mp3file) + '-img.jpg'
+            img_name = os.path.join(settings.STATIC_ROOT, img_basename)
+            print(img_name)
+            out = open(img_name, "wb")
+            out.write(image)
+            out.close()
+            metadata.append(('APIC','/static/'+img_basename))
+        except Exception as e:
+#            print ("Error in get_pic: {} ".format(e))
+            pass
 
         return metadata
     except OSError as e:
@@ -98,7 +115,7 @@ def run_scan(dbconfig,mp3_root):
     time_diff = 0
     start_time = time.time()
 
-    # create_new_db(dbconfig)
+#    create_new_db(dbconfig)
     #truncate_db(dbconfig)
     # build file list
     mp3list = scanfolder_glob(mp3_root)

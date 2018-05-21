@@ -52,7 +52,7 @@ def db_insert_filename_mutagen(conn, cursor, filename, size, metadata, filehash)
         print("meta tag read error {} in file {} ".format(e, filename))
 
     for field, tag_value in tag_list.items():
-        tag_value = ''.join(tag_value)
+        #if field != 'APIC': tag_value = ''.join(tag_value)
         try:
             sql_command= "ALTER TABLE Files ADD {} VARCHAR (255) NULL DEFAULT ''".format(field)
             cursor.execute(sql_command)

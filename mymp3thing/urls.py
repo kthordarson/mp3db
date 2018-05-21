@@ -18,6 +18,7 @@ from django.urls import path,include, re_path
 from mp3db.views import hello,  artist_list,getalbums,getalbum_tracks,search,artist,rescan_db,song_list
 from django.conf import settings
 from django.conf.urls import include, url
+from django.conf.urls.static import static
 
 
 urlpatterns = [
