@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS `album`;
 CREATE TABLE IF NOT EXISTS `album` (
   `album_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255)  DEFAULT '<unknown>',
+  `albumfolder` varchar(255),
   `artist_id` int(11) NOT NULL,
   `albumartist_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`),

@@ -1,21 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-    <H1>TRACKLIST</H1>
     <div class="w3-container">
-        <h1>{{ albumname }}</h1>
+        <h2>{{ albumname }}</h2>
+        <h3>{{ results.0.artistname }}</h3>
+        <h4>{{ albumfolder }}</h4>
         <table class="w3-table-all">
         <tr>
             <th align="left">Song ID</th>
             <th align="left">Song name</th>
             <th align="left">Artist id</th>
-            <th align="left">Artist name</th>
         </tr>
             {%for song in results %}
                 <tr>
                     <td> {{ song.song_id }}</td>
                     <td>{{ song.title }}</td>
-                    <td>{{ song.artist_id }}</td>
-                    <td>{{ song.artistname }}</td>
+                    <td><a href="/artist/?id={{ song.artist_id }}">{{ song.artist_id }}</a></td>
                 </tr>
                 {% endfor %}
         </table>

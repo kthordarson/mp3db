@@ -78,6 +78,7 @@ def db_process_filename2(connection, cursor, file_id):
         albumartistname = row.get('albumartist')
         title = row.get('title')
         filename = row.get('filename')
+        albumfolder = os.path.dirname(filename)
 
         # first look in artist table for existing artist
         sql_command = """SELECT artist_id, artistname FROM artist WHERE artistname = (%s)"""
@@ -108,8 +109,8 @@ def db_process_filename2(connection, cursor, file_id):
         res = cursor.fetchone()
         if res is None:
             # insert
-            sql_command = """INSERT INTO album (name, artist_id, albumartist_id) VALUES (%s, %s, %s)"""
-            cursor.execute(sql_command,[album, artist_id, albumartist_id])
+            sql_command = """INSERT INTO album (name, artist_id, albumartist_id, albumfolder) VALUES (%s, %s, %s, %s)"""
+            cursor.execute(sql_command,[album, artist_id, albumartist_id, albumfolder])
             album_id = cursor.lastrowid
         else:
             album_id = res.get('album_id')

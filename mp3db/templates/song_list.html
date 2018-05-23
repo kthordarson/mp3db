@@ -14,9 +14,9 @@
             <tr>
                 <td><a href="/artist/?id={{ result.song_id }}">{{ result.song_id }}</a></td>
                 <td><a href="/artist/?id={{ result.title }}">{{ result.title }}</a></td>
-                <td><a href="/artist_list/?id={{ result.artist_id }}">{{ result.artist_id }}</a></td>
-                <td><a href="/getalbums/?id={{ result.album_id }}">{{ result.album_id }}</a></td>
-                <td><img src="{{ result.APIC }}" > </img> </td>
+                <td><a href="/artist/?id={{ result.artist_id }}">{{ result.artist_id }}</a></td>
+                <td><a href="/getalbum_tracks/?id={{ result.album_id }}">{{ result.album_id }}</a></td>
+                <td><img height="256" width="256" src="{{ result.APIC }}" > </img> </td>
             </tr>
             {% endfor %}
     </table>

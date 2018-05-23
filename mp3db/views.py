@@ -1,5 +1,8 @@
 # Create your views here.
 from django.shortcuts import render
+from django.shortcuts import render_to_response
+from django.template.context import RequestContext
+
 import pymysql.cursors
 import pymysql
 from .scandb import run_scan
@@ -55,7 +58,7 @@ def hello(request):
 
     #get top artists
     sql_command = """
-    select song.artist_id as "Artist id", count(song.artist_id) AS "Count", artist.artistname as "artistname" from song,artist
+    select song.artist_id as "artist_id", count(song.artist_id) AS "Count", artist.artistname as "artistname" from song,artist
     where song.artist_id = artist.artist_id
     group by song.artist_id
     order by count(song.artist_id) DESC limit 20
@@ -118,6 +121,7 @@ def song_list(request):
 #    return artist
 
 def artist(request):
+    page = request.GET.get('page', 1)
     cnx = pymysql.connect(**dbconfig,cursorclass=pymysql.cursors.DictCursor)
     cursor = cnx.cursor()
     if 'id' in request.GET:
@@ -131,7 +135,16 @@ def artist(request):
             cursor.execute('SELECT COUNT(*) as Count from album where artist_id=%s', [id])
             albumcount = cursor.fetchall()
             albumcount = albumcount[0]['Count']
-            return render(request,'artist.html', {'results': results, 'albumcount':albumcount})
+            cursor.execute('select song.*, album.name as albumname from song inner join album on song.artist_id = %s and album.artist_id = %s', [id,id])
+            songs = cursor.fetchall()
+            paginator = Paginator(songs, 50)
+            try:
+                songs = paginator.page(page)
+            except PageNotAnInteger:
+                songs = paginator.page(1)
+            except EmptyPage:
+                songs = paginator.page(paginator.num_pages)
+            return render(request,'artist.html', {'results': results, 'albumcount':albumcount, 'songs':songs})
     else:
         cursor.execute("SELECT * from artist")
         results = cursor.fetchall()
@@ -151,8 +164,8 @@ def getalbums(request):
         else:
             sql_command = "SELECT artistname FROM artist WHERE artist_id = %s"
             cursor.execute(sql_command,[id])
-            result = cursor.fetchone()
-            artist_name = str(result)
+            artist_name = cursor.fetchone()
+
             sql_command ="SELECT * from album where artist_id = %s"
             cursor.execute(sql_command,[id])
             results = cursor.fetchall()
@@ -210,16 +223,17 @@ def getalbum_tracks(request):
             cursor.execute(sql_command,[id])
             album_info = cursor.fetchall()
             # #make this one sql command
-            cursor.execute("SELECT name from album where album_id = %s",[id])
+            cursor.execute("SELECT name, albumfolder from album where album_id = %s",[id])
             results = cursor.fetchall()
             albumname = results[0]['name']
+            albumfolder = results[0]['albumfolder']
             # sql_command ="SELECT * from song where album_id = %s"
             # cursor.execute(sql_command,[id])
             # results = cursor.fetchall()
             # cursor.execute("SELECT artistname FROM artist WHERE artist_id=%s",[id])
             # aname = cursor.fetchall()
             # artistname = aname[0]['artistname']
-            return render(request, 'getalbum_tracks.html', {'results': album_info,'albumname':albumname})
+            return render(request, 'getalbum_tracks.html', {'results': album_info,'albumname':albumname,'albumfolder':albumfolder})
     else:
         return render(request, 'index.html')
 
